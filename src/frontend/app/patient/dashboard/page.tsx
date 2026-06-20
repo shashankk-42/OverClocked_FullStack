@@ -44,28 +44,28 @@ export default function PatientDashboard() {
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">
+        <h1 className="text-2xl font-bold text-neutral-900">
           Good {getGreeting()}, {patient?.name?.split(' ')[0] || user?.name?.split(' ')[0] || 'Patient'} 👋
         </h1>
-        <p className="text-slate-400 mt-1">Here's your health overview for today</p>
+        <p className="text-neutral-500 mt-1">Here's your health overview for today</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* PID Card */}
         <div className="lg:col-span-1">
-          <div className="glass-card rounded-2xl p-6 border border-blue-500/20 glow-blue h-full">
+          <div className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm h-full">
             <div className="flex items-center gap-2 mb-4">
-              <Activity className="w-4 h-4 text-blue-400" />
-              <span className="text-xs font-medium text-blue-400 uppercase tracking-wider">Patient ID Card</span>
+              <Activity className="w-4 h-4 text-blue-600" />
+              <span className="text-xs font-medium text-blue-600 uppercase tracking-wider">Patient ID Card</span>
             </div>
 
-            <div className="bg-slate-900 rounded-xl p-4 mb-4 flex items-center justify-center">
+            <div className="bg-neutral-50 rounded-xl p-4 mb-4 flex items-center justify-center border border-neutral-200">
               {patient?.pid ? (
                 <QRCodeSVG
                   value={patient.pid}
                   size={120}
                   bgColor="transparent"
-                  fgColor="#60a5fa"
+                  fgColor="#0a0a0a"
                   level="H"
                 />
               ) : (
@@ -74,19 +74,19 @@ export default function PatientDashboard() {
             </div>
 
             <div className="text-center">
-              <p className="text-2xl font-mono font-bold text-white tracking-widest">
+              <p className="text-2xl font-mono font-bold text-neutral-900 tracking-widest">
                 {patient?.pid || '···'}
               </p>
-              <p className="text-slate-400 text-sm mt-1">{patient?.name || '···'}</p>
-              <div className="flex justify-center gap-4 mt-3 text-xs text-slate-500">
+              <p className="text-neutral-500 text-sm mt-1">{patient?.name || '···'}</p>
+              <div className="flex justify-center gap-4 mt-3 text-xs text-neutral-400">
                 <span>{patient?.gender || '—'}</span>
                 <span>•</span>
                 <span>{patient?.blood_group || '—'}</span>
               </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-slate-700">
-              <p className="text-xs text-slate-500 text-center">Scan QR for quick hospital check-in</p>
+            <div className="mt-4 pt-4 border-t border-neutral-100">
+              <p className="text-xs text-neutral-400 text-center">Scan QR for quick hospital check-in</p>
             </div>
           </div>
         </div>
@@ -96,48 +96,48 @@ export default function PatientDashboard() {
           {/* Stats row */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Total Visits', value: appointments.filter((a: any) => a.status === 'completed').length, color: 'text-blue-400' },
-              { label: 'Upcoming', value: upcoming.length, color: 'text-emerald-400' },
-              { label: 'Prescriptions', value: '—', color: 'text-amber-400' },
+              { label: 'Total Visits', value: appointments.filter((a: any) => a.status === 'completed').length, color: 'text-blue-600' },
+              { label: 'Upcoming', value: upcoming.length, color: 'text-emerald-600' },
+              { label: 'Prescriptions', value: '—', color: 'text-amber-600' },
             ].map(({ label, value, color }) => (
-              <div key={label} className="glass-card rounded-xl p-4 border border-slate-700/50">
+              <div key={label} className="bg-white rounded-xl p-4 border border-neutral-200 shadow-sm">
                 <p className={`text-2xl font-bold ${color}`}>{value}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{label}</p>
+                <p className="text-xs text-neutral-500 mt-0.5">{label}</p>
               </div>
             ))}
           </div>
 
           {/* Upcoming Appointments */}
-          <div className="glass-card rounded-2xl p-5 border border-slate-700/50">
+          <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-white uppercase tracking-wider">Upcoming Appointments</h2>
-              <Link href="/patient/book" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+              <h2 className="text-sm font-semibold text-neutral-900 uppercase tracking-wider">Upcoming Appointments</h2>
+              <Link href="/patient/book" className="text-xs font-medium text-blue-600 hover:text-blue-500 flex items-center gap-1">
                 Book New <ChevronRight className="w-3 h-3" />
               </Link>
             </div>
 
             {upcoming.length === 0 ? (
               <div className="text-center py-8">
-                <Calendar className="w-10 h-10 text-slate-700 mx-auto mb-2" />
-                <p className="text-slate-500 text-sm">No upcoming appointments</p>
+                <Calendar className="w-10 h-10 text-neutral-300 mx-auto mb-2" />
+                <p className="text-neutral-500 text-sm">No upcoming appointments</p>
                 <Link href="/patient/book"
-                  className="inline-block mt-3 text-xs text-blue-400 hover:text-blue-300 border border-blue-500/30 rounded-lg px-3 py-1.5">
+                  className="inline-block mt-3 text-xs text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5 transition-colors">
                   Book your first appointment →
                 </Link>
               </div>
             ) : (
               <div className="space-y-3">
                 {upcoming.slice(0, 3).map((appt: any) => (
-                  <div key={appt.id} className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                      <Calendar className="w-5 h-5 text-blue-400" />
+                  <div key={appt.id} className="flex items-start gap-3 p-3 rounded-xl bg-neutral-50 border border-neutral-200">
+                    <div className="w-10 h-10 rounded-xl bg-white border border-neutral-200 flex items-center justify-center flex-shrink-0">
+                      <Calendar className="w-5 h-5 text-neutral-700" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white">{appt.doctor_name}</p>
-                      <p className="text-xs text-slate-400">{appt.department}</p>
+                      <p className="text-sm font-medium text-neutral-900">{appt.doctor_name}</p>
+                      <p className="text-xs text-neutral-500">{appt.department}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <Clock className="w-3 h-3 text-slate-500" />
-                        <span className="text-xs text-slate-400">
+                        <Clock className="w-3 h-3 text-neutral-400" />
+                        <span className="text-xs text-neutral-500">
                           {format(new Date(appt.scheduled_at), 'dd MMM yyyy, h:mm a')}
                         </span>
                       </div>
@@ -147,7 +147,7 @@ export default function PatientDashboard() {
                         {appt.status.replace('_', ' ')}
                       </span>
                       {appt.queue_position && (
-                        <span className="text-xs text-slate-500">Queue #{appt.queue_position}</span>
+                        <span className="text-xs text-neutral-500">Queue #{appt.queue_position}</span>
                       )}
                     </div>
                   </div>
@@ -158,11 +158,11 @@ export default function PatientDashboard() {
 
           {/* Alerts */}
           {patient?.allergies && (
-            <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200">
+              <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-red-300">Known Allergies</p>
-                <p className="text-xs text-red-400/80 mt-0.5">{patient.allergies}</p>
+                <p className="text-sm font-medium text-red-800">Known Allergies</p>
+                <p className="text-xs text-red-600 mt-0.5">{patient.allergies}</p>
               </div>
             </div>
           )}
@@ -171,20 +171,20 @@ export default function PatientDashboard() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Quick Actions</h2>
+        <h2 className="text-sm font-semibold text-neutral-500 uppercase tracking-wider mb-3">Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { href: '/patient/book', label: 'Book Appointment', icon: Calendar, color: 'bg-blue-500/10 border-blue-500/20 text-blue-400' },
-            { href: '/patient/history', label: 'Medical History', icon: Activity, color: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' },
-            { href: '/patient/chat', label: 'AI Assistant', icon: CheckCircle, color: 'bg-purple-500/10 border-purple-500/20 text-purple-400' },
-            { href: '/patient/profile', label: 'My Profile', icon: Activity, color: 'bg-amber-500/10 border-amber-500/20 text-amber-400' },
-          ].map(({ href, label, icon: Icon, color }) => (
+            { href: '/patient/book', label: 'Book Appointment', icon: Calendar, color: 'bg-white border-neutral-200 text-neutral-900', iconBg: 'bg-neutral-100 text-neutral-600' },
+            { href: '/patient/history', label: 'Medical History', icon: Activity, color: 'bg-white border-neutral-200 text-neutral-900', iconBg: 'bg-neutral-100 text-neutral-600' },
+            { href: '/patient/chat', label: 'AI Assistant', icon: CheckCircle, color: 'bg-white border-neutral-200 text-neutral-900', iconBg: 'bg-neutral-100 text-neutral-600' },
+            { href: '/patient/profile', label: 'My Profile', icon: Activity, color: 'bg-white border-neutral-200 text-neutral-900', iconBg: 'bg-neutral-100 text-neutral-600' },
+          ].map(({ href, label, icon: Icon, color, iconBg }) => (
             <Link key={href} href={href}
-              className={`glass-card rounded-xl p-4 border ${color.split(' ')[1]} flex flex-col items-start gap-2 hover:scale-[1.02] transition-transform`}>
-              <div className={`w-8 h-8 rounded-lg ${color.split(' ')[0]} ${color.split(' ')[1]} flex items-center justify-center`}>
-                <Icon className={`w-4 h-4 ${color.split(' ')[2]}`} />
+              className={`rounded-xl p-4 border shadow-sm ${color} flex flex-col items-start gap-2 hover:bg-neutral-50 transition-colors`}>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconBg}`}>
+                <Icon className="w-4 h-4" />
               </div>
-              <span className="text-sm font-medium text-white">{label}</span>
+              <span className="text-sm font-medium">{label}</span>
             </Link>
           ))}
         </div>

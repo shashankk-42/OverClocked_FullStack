@@ -5,7 +5,7 @@ export default function DoctorEmergenciesPage() {
     <EnhancementWorkspace
       title="Emergencies"
       focus="Escalation queue, responder assignment, status transitions, and resolution notes."
-      endpoints={['Emergency list', 'Responder assignment', 'Status workflow', 'Notifications']}
+      mode="emergencies"
     />
   );
 }

@@ -66,17 +66,17 @@ export default function BookAppointmentPage() {
   };
 
   const PRIORITY_COLORS: Record<string, string> = {
-    emergency: 'text-red-400 bg-red-500/10 border-red-500/30',
-    high: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
-    medium: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
-    low: 'text-green-400 bg-green-500/10 border-green-500/30',
+    emergency: 'text-red-700 bg-red-50 border-red-200',
+    high: 'text-orange-700 bg-orange-50 border-orange-200',
+    medium: 'text-yellow-700 bg-yellow-50 border-yellow-200',
+    low: 'text-green-700 bg-green-50 border-green-200',
   };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Book Appointment</h1>
-        <p className="text-slate-400 mt-1">AI-powered symptom triage + smart scheduling</p>
+        <h1 className="text-2xl font-bold text-neutral-900">Book Appointment</h1>
+        <p className="text-neutral-500 mt-1">AI-powered symptom triage + smart scheduling</p>
       </div>
 
       {/* Progress Steps */}
@@ -84,37 +84,37 @@ export default function BookAppointmentPage() {
         {STEPS.map((s, i) => (
           <div key={s} className="flex items-center gap-2 flex-1">
             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all
-              ${i < step ? 'bg-emerald-500 text-white' : i === step ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-500'}`}>
+              ${i < step ? 'bg-emerald-600 text-white' : i === step ? 'bg-neutral-900 text-white' : 'bg-neutral-200 text-neutral-500'}`}>
               {i < step ? '✓' : i + 1}
             </div>
             {i < STEPS.length - 1 && (
-              <div className={`h-0.5 flex-1 transition-all ${i < step ? 'bg-emerald-500' : 'bg-slate-700'}`} />
+              <div className={`h-0.5 flex-1 transition-all ${i < step ? 'bg-emerald-600' : 'bg-neutral-200'}`} />
             )}
           </div>
         ))}
       </div>
-      <p className="text-sm font-medium text-blue-400">{STEPS[step]}</p>
+      <p className="text-sm font-medium text-neutral-900">{STEPS[step]}</p>
 
       {/* Step 0: Describe Symptoms */}
       {step === 0 && (
-        <div className="glass-card rounded-2xl p-6 border border-slate-700/50 space-y-4">
+        <div className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm space-y-4">
           <div className="flex items-center gap-2 mb-2">
-            <Brain className="w-5 h-5 text-blue-400" />
-            <h2 className="font-semibold text-white">Describe Your Symptoms</h2>
+            <Brain className="w-5 h-5 text-blue-600" />
+            <h2 className="font-semibold text-neutral-900">Describe Your Symptoms</h2>
           </div>
-          <p className="text-slate-400 text-sm">Tell us what you're experiencing in plain language. Our AI will recommend the right department.</p>
+          <p className="text-neutral-500 text-sm">Tell us what you're experiencing in plain language. Our AI will recommend the right department.</p>
           <textarea
             id="symptoms-input"
             value={symptoms}
             onChange={(e) => setSymptoms(e.target.value)}
             placeholder="e.g. I have had a severe headache for 3 days with neck stiffness and light sensitivity..."
             rows={5}
-            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm resize-none"
+            className="w-full px-4 py-3 bg-white border border-neutral-300 rounded-xl text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
           />
           <div className="flex flex-wrap gap-2">
             {['Fever and cough', 'Chest pain', 'Back pain', 'Headache', 'Skin rash', 'Joint pain'].map((s) => (
               <button key={s} onClick={() => setSymptoms(s)}
-                className="text-xs px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white hover:border-slate-600 transition-colors">
+                className="text-xs px-3 py-1.5 bg-white border border-neutral-300 rounded-lg text-neutral-600 hover:text-neutral-900 hover:border-neutral-400 transition-colors">
                 {s}
               </button>
             ))}
@@ -123,7 +123,7 @@ export default function BookAppointmentPage() {
             id="run-triage-btn"
             onClick={runTriage}
             disabled={!symptoms.trim() || triageLoading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition-all">
+            className="w-full py-3 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition-all">
             {triageLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
             {triageLoading ? 'AI is analyzing...' : 'Analyze with AI Triage'}
           </button>
@@ -132,37 +132,37 @@ export default function BookAppointmentPage() {
 
       {/* Step 1: Triage Result (shown before going to step 2) */}
       {step === 1 && triageResult && (
-        <div className="glass-card rounded-2xl p-6 border border-blue-500/20 space-y-4">
+        <div className="bg-white rounded-2xl p-6 border border-blue-200 shadow-sm space-y-4">
           <div className="flex items-center gap-2">
-            <Brain className="w-5 h-5 text-blue-400" />
-            <h2 className="font-semibold text-white">AI Triage Result</h2>
+            <Brain className="w-5 h-5 text-blue-600" />
+            <h2 className="font-semibold text-neutral-900">AI Triage Result</h2>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-slate-800/50 rounded-xl p-4">
-              <p className="text-xs text-slate-500 mb-1">Recommended Department</p>
-              <p className="text-lg font-bold text-white">{triageResult.department}</p>
+            <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
+              <p className="text-xs text-neutral-500 mb-1">Recommended Department</p>
+              <p className="text-lg font-bold text-neutral-900">{triageResult.department}</p>
             </div>
-            <div className="bg-slate-800/50 rounded-xl p-4">
-              <p className="text-xs text-slate-500 mb-1">Priority</p>
+            <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
+              <p className="text-xs text-neutral-500 mb-1">Priority</p>
               <span className={`inline-block text-sm font-bold px-3 py-1 rounded-full border ${PRIORITY_COLORS[triageResult.priority]}`}>
                 {triageResult.priority?.toUpperCase()}
               </span>
             </div>
           </div>
           {triageResult.reasoning && (
-            <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4">
-              <p className="text-xs text-blue-400 font-medium mb-1">AI Reasoning</p>
-              <p className="text-sm text-slate-300">{triageResult.reasoning}</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <p className="text-xs text-blue-600 font-medium mb-1">AI Reasoning</p>
+              <p className="text-sm text-neutral-700">{triageResult.reasoning}</p>
             </div>
           )}
           {triageResult.do_not_delay && (
-            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
-              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
-              <p className="text-sm text-red-400">This may require urgent attention. Please seek immediate care.</p>
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+              <p className="text-sm text-red-700">This may require urgent attention. Please seek immediate care.</p>
             </div>
           )}
           <button onClick={() => setStep(2)}
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold flex items-center justify-center gap-2">
+            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold flex items-center justify-center gap-2">
             Find Available Doctors <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -170,78 +170,78 @@ export default function BookAppointmentPage() {
 
       {/* Step 2: Choose Doctor */}
       {step === 2 && (
-        <div className="glass-card rounded-2xl p-6 border border-slate-700/50 space-y-4">
-          <h2 className="font-semibold text-white">Select a Doctor</h2>
+        <div className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm space-y-4">
+          <h2 className="font-semibold text-neutral-900">Select a Doctor</h2>
           {triageResult && (
-            <div className="text-xs text-slate-400 flex items-center gap-2">
-              <Brain className="w-3 h-3 text-blue-400" />
-              AI recommended: <span className="text-blue-400 font-medium">{triageResult.department}</span>
+            <div className="text-xs text-neutral-500 flex items-center gap-2">
+              <Brain className="w-3 h-3 text-blue-600" />
+              AI recommended: <span className="text-blue-600 font-medium">{triageResult.department}</span>
             </div>
           )}
           <div className="space-y-3">
             {doctors.length === 0 ? (
-              <p className="text-slate-400 text-sm text-center py-4">No doctors found in this department</p>
+              <p className="text-neutral-500 text-sm text-center py-4">No doctors found in this department</p>
             ) : doctors.map((doc: any) => (
               <button key={doc.id} onClick={() => { setSelectedDoctor(doc); setStep(3); }}
                 className={`w-full flex items-start gap-4 p-4 rounded-xl border transition-all text-left
-                  ${selectedDoctor?.id === doc.id ? 'border-blue-500 bg-blue-500/10' : 'border-slate-700 bg-slate-800/40 hover:border-slate-600'}`}>
-                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0 text-emerald-400 font-bold">
+                  ${selectedDoctor?.id === doc.id ? 'border-blue-300 bg-blue-50' : 'border-neutral-200 bg-neutral-50 hover:border-neutral-300'}`}>
+                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 text-emerald-700 font-bold">
                   {doc.name.charAt(0)}
                 </div>
                 <div>
-                  <p className="font-medium text-white">{doc.name}</p>
-                  <p className="text-sm text-slate-400">{doc.specialization}</p>
-                  <p className="text-xs text-slate-500">{doc.department} • Available: {doc.available_days || 'Mon-Fri'}</p>
+                  <p className="font-medium text-neutral-900">{doc.name}</p>
+                  <p className="text-sm text-neutral-500">{doc.specialization}</p>
+                  <p className="text-xs text-neutral-500">{doc.department} • Available: {doc.available_days || 'Mon-Fri'}</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-500 ml-auto self-center" />
+                <ChevronRight className="w-4 h-4 text-neutral-400 ml-auto self-center" />
               </button>
             ))}
           </div>
-          <button onClick={() => setStep(1)} className="text-sm text-slate-400 hover:text-white">← Back to triage</button>
+          <button onClick={() => setStep(1)} className="text-sm text-neutral-500 hover:text-neutral-900">← Back to triage</button>
         </div>
       )}
 
       {/* Step 3: Select Slot */}
       {step === 3 && selectedDoctor && (
-        <div className="glass-card rounded-2xl p-6 border border-slate-700/50 space-y-4">
-          <h2 className="font-semibold text-white">Select Date & Time</h2>
-          <p className="text-sm text-slate-400">With {selectedDoctor.name}</p>
+        <div className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm space-y-4">
+          <h2 className="font-semibold text-neutral-900">Select Date & Time</h2>
+          <p className="text-sm text-neutral-500">With {selectedDoctor.name}</p>
 
           <div>
-            <label className="block text-xs text-slate-400 mb-2">Select Date</label>
+            <label className="block text-xs text-neutral-500 mb-2">Select Date</label>
             <input type="date" value={selectedDate}
               min={format(new Date(), 'yyyy-MM-dd')}
               max={format(addDays(new Date(), 30), 'yyyy-MM-dd')}
               onChange={(e) => { setSelectedDate(e.target.value); setSelectedSlot(null); }}
-              className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" />
+              className="px-3 py-2 bg-white border border-neutral-300 rounded-lg text-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
           </div>
 
           {slotsLoading ? (
-            <div className="flex items-center gap-2 text-slate-400 text-sm">
+            <div className="flex items-center gap-2 text-neutral-500 text-sm">
               <Loader2 className="w-4 h-4 animate-spin" /> Loading available slots...
             </div>
           ) : (
             <div>
-              <p className="text-xs text-slate-400 mb-3">Available Time Slots</p>
+              <p className="text-xs text-neutral-500 mb-3">Available Time Slots</p>
               <div className="grid grid-cols-4 gap-2">
                 {(slotsData?.slots || []).map((slot: string) => (
                   <button key={slot} onClick={() => setSelectedSlot(slot)}
                     className={`py-2 text-xs rounded-lg border transition-all font-medium
-                      ${selectedSlot === slot ? 'bg-blue-500 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-600'}`}>
+                      ${selectedSlot === slot ? 'bg-neutral-900 border-neutral-900 text-white' : 'bg-white border-neutral-200 text-neutral-700 hover:border-neutral-400'}`}>
                     {format(new Date(slot), 'h:mm a')}
                   </button>
                 ))}
                 {(slotsData?.slots || []).length === 0 && (
-                  <p className="col-span-4 text-slate-500 text-sm">No slots available for this date. Try another day.</p>
+                  <p className="col-span-4 text-neutral-500 text-sm">No slots available for this date. Try another day.</p>
                 )}
               </div>
             </div>
           )}
 
           <div className="flex gap-3">
-            <button onClick={() => setStep(2)} className="px-4 py-2 text-sm text-slate-400 hover:text-white">← Back</button>
+            <button onClick={() => setStep(2)} className="px-4 py-2 text-sm text-neutral-500 hover:text-neutral-900">← Back</button>
             <button onClick={() => setStep(4)} disabled={!selectedSlot}
-              className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl font-semibold text-sm">
+              className="flex-1 py-2.5 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white rounded-xl font-semibold text-sm">
               Continue
             </button>
           </div>
@@ -250,10 +250,10 @@ export default function BookAppointmentPage() {
 
       {/* Step 4: Confirm */}
       {step === 4 && selectedDoctor && selectedSlot && (
-        <div className="glass-card rounded-2xl p-6 border border-emerald-500/20 space-y-4">
+        <div className="bg-white rounded-2xl p-6 border border-emerald-200 shadow-sm space-y-4">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-            <h2 className="font-semibold text-white">Confirm Appointment</h2>
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            <h2 className="font-semibold text-neutral-900">Confirm Appointment</h2>
           </div>
           <div className="space-y-3">
             {[
@@ -264,18 +264,18 @@ export default function BookAppointmentPage() {
               { label: 'Symptoms', value: symptoms },
             ].map(({ label, value }) => (
               <div key={label} className="flex gap-4 text-sm">
-                <span className="text-slate-500 w-28 flex-shrink-0">{label}</span>
-                <span className="text-white">{value}</span>
+                <span className="text-neutral-500 w-28 flex-shrink-0">{label}</span>
+                <span className="text-neutral-900">{value}</span>
               </div>
             ))}
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setStep(3)} className="px-4 py-2 text-sm text-slate-400 hover:text-white">← Edit</button>
+            <button onClick={() => setStep(3)} className="px-4 py-2 text-sm text-neutral-500 hover:text-neutral-900">← Edit</button>
             <button
               id="confirm-booking-btn"
               onClick={() => bookMutation.mutate()}
               disabled={bookMutation.isPending}
-              className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-semibold flex items-center justify-center gap-2">
+              className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-semibold flex items-center justify-center gap-2">
               {bookMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
               {bookMutation.isPending ? 'Booking...' : 'Confirm Booking'}
             </button>

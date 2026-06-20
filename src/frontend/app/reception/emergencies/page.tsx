@@ -5,7 +5,7 @@ export default function ReceptionEmergenciesPage() {
     <EnhancementWorkspace
       title="Emergencies"
       focus="Hospital-wide escalation visibility and routing support."
-      endpoints={['Emergency dashboard', 'Patient lookup', 'Location tracking', 'Responder updates']}
+      mode="emergencies"
     />
   );
 }

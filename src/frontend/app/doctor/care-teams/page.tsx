@@ -5,7 +5,7 @@ export default function DoctorCareTeamsPage() {
     <EnhancementWorkspace
       title="Care Teams"
       focus="Shared notes, treatment plans, specialist referrals, and collaborative ownership."
-      endpoints={['Care teams', 'Shared notes', 'Treatment plans', 'Referrals']}
+      mode="care-teams"
     />
   );
 }

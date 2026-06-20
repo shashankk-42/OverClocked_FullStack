@@ -5,7 +5,7 @@ export default function ReceptionRoomsPage() {
     <EnhancementWorkspace
       title="Rooms & Beds"
       focus="Room availability, bed availability, ICU occupancy, and ward status."
-      endpoints={['Room availability', 'Bed creation', 'Bed status', 'Occupancy summary']}
+      mode="reception-rooms"
     />
   );
 }

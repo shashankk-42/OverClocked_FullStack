@@ -141,6 +141,8 @@ export const enhancementsApi = {
     apiClient.get(`/enhancements/medications/timeline/${patientId}`),
   registerDispenser: (data: Record<string, unknown>) =>
     apiClient.post('/enhancements/devices/dispensers', data),
+  dispensers: (patientId?: string) =>
+    apiClient.get('/enhancements/devices/dispensers', { params: { patient_id: patientId } }),
   syncDispenser: (id: string) =>
     apiClient.post(`/enhancements/devices/dispensers/${id}/sync`),
   dispenserEvent: (id: string, data: Record<string, unknown>) =>
@@ -151,6 +153,7 @@ export const enhancementsApi = {
   createWaitlistEntry: (data: Record<string, unknown>) =>
     apiClient.post('/enhancements/appointments/waitlist', data),
   myWaitlist: () => apiClient.get('/enhancements/appointments/waitlist/my'),
+  waitlist: () => apiClient.get('/enhancements/appointments/waitlist'),
   createEarlierOffer: (data: Record<string, unknown>) =>
     apiClient.post('/enhancements/appointments/offers', data),
   acceptEarlierOffer: (id: string) =>
@@ -188,6 +191,7 @@ export const enhancementsApi = {
     apiClient.post('/enhancements/insurance/eligibility-checks', data),
   createClaim: (data: Record<string, unknown>) =>
     apiClient.post('/enhancements/insurance/claims', data),
+  claims: () => apiClient.get('/enhancements/insurance/claims'),
 
   startAssistantConversation: (data: Record<string, unknown>) =>
     apiClient.post('/enhancements/assistant/conversations', data),
@@ -211,6 +215,8 @@ export const enhancementsApi = {
 
   createCareTeam: (data: Record<string, unknown>) =>
     apiClient.post('/enhancements/care-teams', data),
+  careTeams: (patientId?: string) =>
+    apiClient.get('/enhancements/care-teams', { params: { patient_id: patientId } }),
   addCareTeamMember: (teamId: string, data: Record<string, unknown>) =>
     apiClient.post(`/enhancements/care-teams/${teamId}/members`, data),
   createCareNote: (teamId: string, data: Record<string, unknown>) =>
@@ -222,6 +228,7 @@ export const enhancementsApi = {
 
   createJourney: (data: Record<string, unknown>) =>
     apiClient.post('/enhancements/journeys', data),
+  journeys: () => apiClient.get('/enhancements/journeys'),
   updateJourneyStep: (journeyId: string, stepId: string, status: string) =>
     apiClient.patch(`/enhancements/journeys/${journeyId}/steps/${stepId}`, { status }),
   myCurrentJourney: () => apiClient.get('/enhancements/journeys/my/current'),
@@ -234,4 +241,6 @@ export const enhancementsApi = {
     apiClient.post(`/enhancements/visual-triage/${id}/analyze`, data || {}),
   getVisualTriage: (id: string) =>
     apiClient.get(`/enhancements/visual-triage/${id}`),
+  visualTriageList: (patientId?: string) =>
+    apiClient.get('/enhancements/visual-triage', { params: { patient_id: patientId } }),
 };

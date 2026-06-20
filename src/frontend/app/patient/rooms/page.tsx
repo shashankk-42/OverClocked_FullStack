@@ -5,7 +5,7 @@ export default function PatientRoomsPage() {
     <EnhancementWorkspace
       title="Rooms"
       focus="Patient-facing room types, pricing, amenities, and availability."
-      endpoints={['Public availability', 'Room pricing', 'Amenities', 'Bed status']}
+      mode="patient-rooms"
     />
   );
 }

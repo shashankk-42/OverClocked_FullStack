@@ -5,7 +5,7 @@ export default function PatientJourneyPage() {
     <EnhancementWorkspace
       title="Care Journey"
       focus="Current step, next destination, location, and expected duration."
-      endpoints={['Current journey', 'Journey steps', 'Department routing', 'Duration estimates']}
+      mode="patient-journey"
     />
   );
 }

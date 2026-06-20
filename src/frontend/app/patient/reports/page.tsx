@@ -5,7 +5,7 @@ export default function PatientReportsPage() {
     <EnhancementWorkspace
       title="Test Results"
       focus="Secure report access, sharing, downloads, and clinical history."
-      endpoints={['Report shares', 'Secure access tokens', 'Historical profile', 'Audit tracking']}
+      mode="patient-reports"
     />
   );
 }

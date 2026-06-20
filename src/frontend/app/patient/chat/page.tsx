@@ -59,24 +59,24 @@ export default function AIChatPage() {
   return (
     <div className="max-w-2xl mx-auto flex flex-col h-[calc(100vh-5rem)]">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Bot className="w-6 h-6 text-blue-400" />
+        <h1 className="text-2xl font-bold text-neutral-900 flex items-center gap-2">
+          <Bot className="w-6 h-6 text-neutral-900" />
           AI Health Assistant
         </h1>
-        <p className="text-slate-400 text-sm mt-1">Powered by Google Gemini — ask me anything about your health</p>
+        <p className="text-neutral-500 text-sm mt-1">Powered by Google Gemini — ask me anything about your health</p>
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 glass-card rounded-2xl border border-slate-700/50 overflow-hidden flex flex-col">
+      <div className="flex-1 bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex flex-col">
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((msg, i) => (
             <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center
-                ${msg.role === 'ai' ? 'bg-blue-500' : 'bg-slate-600'}`}>
-                {msg.role === 'ai' ? <Bot className="w-4 h-4 text-white" /> : <User className="w-4 h-4 text-white" />}
+                ${msg.role === 'ai' ? 'bg-neutral-900' : 'bg-neutral-200'}`}>
+                {msg.role === 'ai' ? <Bot className="w-4 h-4 text-white" /> : <User className="w-4 h-4 text-neutral-600" />}
               </div>
               <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed
-                ${msg.role === 'ai' ? 'bg-slate-800 text-slate-100 rounded-tl-sm' : 'bg-blue-600 text-white rounded-tr-sm'}`}>
+                ${msg.role === 'ai' ? 'bg-neutral-100 text-neutral-900 rounded-tl-sm' : 'bg-neutral-900 text-white rounded-tr-sm'}`}>
                 {msg.content}
               </div>
             </div>
@@ -84,11 +84,11 @@ export default function AIChatPage() {
 
           {loading && (
             <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-neutral-900 flex items-center justify-center flex-shrink-0">
                 <Bot className="w-4 h-4 text-white" />
               </div>
-              <div className="bg-slate-800 px-4 py-3 rounded-2xl rounded-tl-sm">
-                <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
+              <div className="bg-neutral-100 px-4 py-3 rounded-2xl rounded-tl-sm">
+                <Loader2 className="w-4 h-4 text-neutral-500 animate-spin" />
               </div>
             </div>
           )}
@@ -98,11 +98,11 @@ export default function AIChatPage() {
         {/* Suggestions */}
         {messages.length === 1 && (
           <div className="px-4 pb-3">
-            <p className="text-xs text-slate-500 mb-2">Suggested questions:</p>
+            <p className="text-xs text-neutral-500 mb-2">Suggested questions:</p>
             <div className="flex flex-wrap gap-2">
               {SUGGESTIONS.map((s) => (
                 <button key={s} onClick={() => sendMessage(s)}
-                  className="text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 transition-colors">
+                  className="text-xs px-3 py-1.5 bg-white hover:bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-600 transition-colors">
                   {s}
                 </button>
               ))}
@@ -111,7 +111,7 @@ export default function AIChatPage() {
         )}
 
         {/* Input */}
-        <div className="p-4 border-t border-slate-700">
+        <div className="p-4 border-t border-neutral-200">
           <div className="flex gap-3">
             <input
               id="chat-input"
@@ -119,13 +119,13 @@ export default function AIChatPage() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
               placeholder="Ask me about your health, medications, appointments..."
-              className="flex-1 px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm"
+              className="flex-1 px-4 py-2.5 bg-white border border-neutral-300 rounded-xl text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent text-sm"
             />
             <button
               id="chat-send-btn"
               onClick={() => sendMessage()}
               disabled={!input.trim() || loading}
-              className="w-10 h-10 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-xl flex items-center justify-center flex-shrink-0 transition-all">
+              className="w-10 h-10 bg-neutral-900 hover:bg-neutral-700 disabled:opacity-40 text-white rounded-xl flex items-center justify-center flex-shrink-0 transition-all">
               <Send className="w-4 h-4" />
             </button>
           </div>

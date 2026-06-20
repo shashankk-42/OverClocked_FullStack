@@ -5,7 +5,7 @@ export default function ReceptionWaitlistPage() {
     <EnhancementWorkspace
       title="Earlier Slots"
       focus="Waitlist entries, cancellation-triggered offers, expiry, and one-click acceptance."
-      endpoints={['Waitlist', 'Earlier offers', 'Offer acceptance', 'Recovery options']}
+      mode="reception-waitlist"
     />
   );
 }

@@ -5,7 +5,7 @@ export default function PatientFamilyPage() {
     <EnhancementWorkspace
       title="Family Access"
       focus="Family groups, dependents, and scoped access levels."
-      endpoints={['Family groups', 'Family members', 'Access levels', 'Patient grants']}
+      mode="patient-family"
     />
   );
 }

@@ -5,7 +5,7 @@ export default function DoctorFollowUpsPage() {
     <EnhancementWorkspace
       title="Follow-Ups"
       focus="Questionnaires, symptom review, adherence checks, and AI risk scoring."
-      endpoints={['Follow-up plans', 'Submitted responses', 'Risk scoring', 'Review status']}
+      mode="follow-ups"
     />
   );
 }

@@ -5,7 +5,7 @@ export default function PatientVisualTriagePage() {
     <EnhancementWorkspace
       title="Visual Triage"
       focus="Clinical image upload, AI summary, urgency, and review routing."
-      endpoints={['Image upload', 'AI analysis', 'Urgency level', 'Emergency linkage']}
+      mode="patient-visual-triage"
     />
   );
 }

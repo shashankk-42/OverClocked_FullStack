@@ -627,6 +627,21 @@ async def register_dispenser(
     return model_to_dict(device)
 
 
+@router.get("/devices/dispensers")
+async def list_dispensers(
+    patient_id: str | None = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role == "patient" or patient_id:
+        resolved_patient_id = await resolve_patient_id(db, current_user, patient_id)
+        query = select(MedicationDispenserDevice).where(MedicationDispenserDevice.patient_id == resolved_patient_id)
+    else:
+        query = select(MedicationDispenserDevice)
+    result = await db.execute(query.order_by(MedicationDispenserDevice.created_at.desc()).limit(100))
+    return [model_to_dict(row) for row in result.scalars().all()]
+
+
 @router.post("/devices/dispensers/{device_id}/sync")
 async def sync_dispenser(
     device_id: str,
@@ -715,6 +730,19 @@ async def my_waitlist(
         select(AppointmentWaitlistEntry)
         .where(AppointmentWaitlistEntry.patient_id == current_user.linked_id)
         .order_by(AppointmentWaitlistEntry.created_at.desc())
+    )
+    return [model_to_dict(row) for row in result.scalars().all()]
+
+
+@router.get("/appointments/waitlist")
+async def list_waitlist_entries(
+    current_user: User = Depends(require_role("receptionist", "admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(AppointmentWaitlistEntry)
+        .order_by(AppointmentWaitlistEntry.created_at.desc())
+        .limit(100)
     )
     return [model_to_dict(row) for row in result.scalars().all()]
 
@@ -1035,6 +1063,26 @@ async def create_claim(
     return model_to_dict(claim)
 
 
+@router.get("/insurance/claims")
+async def list_claims(
+    current_user: User = Depends(require_role("patient", "receptionist", "admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role == "patient":
+        policies = await db.execute(select(InsurancePolicy).where(InsurancePolicy.patient_id == current_user.linked_id))
+        policy_ids = [policy.id for policy in policies.scalars().all()]
+        if not policy_ids:
+            return []
+        result = await db.execute(
+            select(InsuranceClaim)
+            .where(InsuranceClaim.insurance_policy_id.in_(policy_ids))
+            .order_by(InsuranceClaim.created_at.desc())
+        )
+    else:
+        result = await db.execute(select(InsuranceClaim).order_by(InsuranceClaim.created_at.desc()).limit(100))
+    return [model_to_dict(row) for row in result.scalars().all()]
+
+
 @router.post("/assistant/conversations")
 async def start_assistant_conversation(
     data: AssistantConversationRequest,
@@ -1231,6 +1279,26 @@ async def create_care_team(
     return model_to_dict(team)
 
 
+@router.get("/care-teams")
+async def list_care_teams(
+    patient_id: str | None = None,
+    current_user: User = Depends(require_role("doctor", "nurse", "admin", "patient")),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role == "patient":
+        resolved_patient_id = current_user.linked_id
+    elif patient_id:
+        resolved_patient_id = uuid.UUID(patient_id)
+    else:
+        resolved_patient_id = None
+
+    query = select(CareTeam).order_by(CareTeam.created_at.desc()).limit(100)
+    if resolved_patient_id:
+        query = query.where(CareTeam.patient_id == resolved_patient_id)
+    result = await db.execute(query)
+    return [model_to_dict(row) for row in result.scalars().all()]
+
+
 @router.post("/care-teams/{team_id}/members")
 async def add_care_team_member(
     team_id: str,
@@ -1367,6 +1435,25 @@ async def my_current_journey(
     return {"journey": model_to_dict(journey), "steps": [model_to_dict(step) for step in steps]}
 
 
+@router.get("/journeys")
+async def list_journeys(
+    current_user: User = Depends(require_role("receptionist", "doctor", "nurse", "admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    journeys = (await db.execute(select(PatientJourney).order_by(PatientJourney.created_at.desc()).limit(100))).scalars().all()
+    output = []
+    for journey in journeys:
+        steps = (
+            await db.execute(
+                select(JourneyStep)
+                .where(JourneyStep.journey_id == journey.id)
+                .order_by(JourneyStep.step_order)
+            )
+        ).scalars().all()
+        output.append({"journey": model_to_dict(journey), "steps": [model_to_dict(step) for step in steps]})
+    return output
+
+
 @router.post("/visual-triage/uploads")
 async def upload_visual_triage_image(
     patient_id: str = Form(...),
@@ -1453,3 +1540,20 @@ async def get_visual_triage(
     )
     analyses = analysis_result.scalars().all()
     return {"upload": model_to_dict(upload), "analyses": [model_to_dict(row) for row in analyses]}
+
+
+@router.get("/visual-triage")
+async def list_visual_triage(
+    patient_id: str | None = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    resolved_patient_id = await resolve_patient_id(db, current_user, patient_id)
+    uploads = (
+        await db.execute(
+            select(VisualTriageUpload)
+            .where(VisualTriageUpload.patient_id == resolved_patient_id)
+            .order_by(VisualTriageUpload.created_at.desc())
+        )
+    ).scalars().all()
+    return [model_to_dict(upload) for upload in uploads]

@@ -5,7 +5,7 @@ export default function PatientMedicationsPage() {
     <EnhancementWorkspace
       title="Medications"
       focus="Timeline, adherence, dispenser sync, and missed-dose alerts."
-      endpoints={['Medication timeline', 'Dispenser registration', 'Schedule sync', 'Adherence events']}
+      mode="patient-medications"
     />
   );
 }

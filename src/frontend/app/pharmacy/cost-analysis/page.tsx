@@ -5,7 +5,7 @@ export default function PharmacyCostAnalysisPage() {
     <EnhancementWorkspace
       title="Cost Analysis"
       focus="Prescription cost breakdown, generic alternatives, and doctor-approved substitutions."
-      endpoints={['Cost breakdown', 'Generic alternatives', 'Substitution requests', 'Doctor approval']}
+      mode="pharmacy-cost"
     />
   );
 }

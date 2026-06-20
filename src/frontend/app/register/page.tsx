@@ -7,6 +7,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { authApi } from '@/lib/api';
 import { Activity, Loader2 } from 'lucide-react';
 
+const inputClass = 'w-full px-3.5 py-2.5 bg-white border border-neutral-300 rounded-xl text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all text-sm';
+
+function Field({ label, id, children }: { label: string; id: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium text-neutral-700 mb-1.5">{label}</label>
+      {children}
+    </div>
+  );
+}
+
 export default function RegisterPage() {
   const { login } = useAuth();
   const router = useRouter();
@@ -23,25 +34,18 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     if (form.password !== form.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-
     setLoading(true);
     try {
       const res = await authApi.register({
-        name: form.name,
-        phone: form.phone,
-        password: form.password,
-        email: form.email || undefined,
-        dob: form.dob || undefined,
-        gender: form.gender || undefined,
-        blood_group: form.blood_group || undefined,
+        name: form.name, phone: form.phone, password: form.password,
+        email: form.email || undefined, dob: form.dob || undefined,
+        gender: form.gender || undefined, blood_group: form.blood_group || undefined,
         allergies: form.allergies || undefined,
       });
-
       const { access_token, role, user_id, linked_id, pid, name } = res.data;
       login(access_token, { user_id, role, linked_id, name, pid } as any);
       router.push('/patient/dashboard');
@@ -53,122 +57,86 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-600/8 rounded-full blur-3xl" />
-      </div>
-
-      <div className="relative z-10 w-full max-w-lg">
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
-            <Activity className="w-6 h-6 text-white" />
+    <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-lg">
+        {/* Logo */}
+        <div className="flex items-center justify-center gap-2.5 mb-8">
+          <div className="w-9 h-9 bg-neutral-900 rounded-xl flex items-center justify-center">
+            <Activity className="w-5 h-5 text-white" />
           </div>
-          <span className="text-2xl font-bold gradient-text">MediFlow AI</span>
+          <span className="text-xl font-bold text-neutral-900">MediFlow AI</span>
         </div>
 
-        <div className="glass-card rounded-2xl p-8 border border-slate-700/50">
-          <h1 className="text-2xl font-bold text-white mb-1">Create Patient Account</h1>
-          <p className="text-slate-400 text-sm mb-6">Join MediFlow AI — get your unique Patient ID</p>
+        <div className="bg-white border border-neutral-200 rounded-2xl p-8 shadow-sm">
+          <h1 className="text-2xl font-bold text-neutral-900 mb-1">Create Patient Account</h1>
+          <p className="text-neutral-500 text-sm mb-6">Join MediFlow AI — get your unique Patient ID</p>
 
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+            <div className="mb-5 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-              {/* Required fields */}
-              <Field label="Full Name *" id="reg-name">
-                <input id="reg-name" value={form.name} onChange={set('name')} required
-                  className="input-field" placeholder="Your full name" />
+            <Field label="Full Name *" id="reg-name">
+              <input id="reg-name" value={form.name} onChange={set('name')} required className={inputClass} placeholder="Your full name" />
+            </Field>
+            <Field label="Phone Number *" id="reg-phone">
+              <input id="reg-phone" value={form.phone} onChange={set('phone')} required className={inputClass} placeholder="10-digit mobile number" />
+            </Field>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Password *" id="reg-password">
+                <input id="reg-password" type="password" value={form.password} onChange={set('password')} required className={inputClass} placeholder="Min 6 characters" minLength={6} />
               </Field>
-              <Field label="Phone Number *" id="reg-phone">
-                <input id="reg-phone" value={form.phone} onChange={set('phone')} required
-                  className="input-field" placeholder="10-digit mobile number" />
+              <Field label="Confirm Password *" id="reg-confirm">
+                <input id="reg-confirm" type="password" value={form.confirmPassword} onChange={set('confirmPassword')} required className={inputClass} placeholder="Repeat password" />
               </Field>
+            </div>
+
+            <div className="pt-4 border-t border-neutral-100">
+              <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-4">Optional Details</p>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Password *" id="reg-password">
-                  <input id="reg-password" type="password" value={form.password} onChange={set('password')} required
-                    className="input-field" placeholder="Min 8 characters" minLength={6} />
+                <Field label="Date of Birth" id="reg-dob">
+                  <input id="reg-dob" type="date" value={form.dob} onChange={set('dob')} className={inputClass} />
                 </Field>
-                <Field label="Confirm Password *" id="reg-confirm">
-                  <input id="reg-confirm" type="password" value={form.confirmPassword} onChange={set('confirmPassword')} required
-                    className="input-field" placeholder="Repeat password" />
+                <Field label="Gender" id="reg-gender">
+                  <select id="reg-gender" value={form.gender} onChange={set('gender')} className={inputClass}>
+                    <option value="">Select...</option>
+                    <option>Male</option>
+                    <option>Female</option>
+                    <option>Other</option>
+                  </select>
+                </Field>
+                <Field label="Blood Group" id="reg-blood">
+                  <select id="reg-blood" value={form.blood_group} onChange={set('blood_group')} className={inputClass}>
+                    <option value="">Select...</option>
+                    {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => <option key={bg}>{bg}</option>)}
+                  </select>
+                </Field>
+                <Field label="Email" id="reg-email">
+                  <input id="reg-email" type="email" value={form.email} onChange={set('email')} className={inputClass} placeholder="Optional" />
                 </Field>
               </div>
-
-              {/* Optional fields */}
-              <div className="pt-2 border-t border-slate-700/50">
-                <p className="text-xs text-slate-500 mb-3 uppercase tracking-wider">Optional Details</p>
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Date of Birth" id="reg-dob">
-                    <input id="reg-dob" type="date" value={form.dob} onChange={set('dob')} className="input-field" />
-                  </Field>
-                  <Field label="Gender" id="reg-gender">
-                    <select id="reg-gender" value={form.gender} onChange={set('gender')} className="input-field">
-                      <option value="">Select...</option>
-                      <option>Male</option>
-                      <option>Female</option>
-                      <option>Other</option>
-                    </select>
-                  </Field>
-                  <Field label="Blood Group" id="reg-blood">
-                    <select id="reg-blood" value={form.blood_group} onChange={set('blood_group')} className="input-field">
-                      <option value="">Select...</option>
-                      {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => (
-                        <option key={bg}>{bg}</option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="Email" id="reg-email">
-                    <input id="reg-email" type="email" value={form.email} onChange={set('email')} className="input-field" placeholder="Optional" />
-                  </Field>
-                </div>
+              <div className="mt-4">
                 <Field label="Known Allergies" id="reg-allergies">
-                  <input id="reg-allergies" value={form.allergies} onChange={set('allergies')} className="input-field" placeholder="e.g. Penicillin, Sulfa drugs" />
+                  <input id="reg-allergies" value={form.allergies} onChange={set('allergies')} className={inputClass} placeholder="e.g. Penicillin, Sulfa drugs" />
                 </Field>
               </div>
             </div>
 
             <button id="reg-submit" type="submit" disabled={loading}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2 mt-2">
+              className="w-full py-3 bg-neutral-900 hover:bg-neutral-700 disabled:opacity-60 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 mt-2">
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {loading ? 'Creating account...' : 'Create Account & Get PID'}
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-500 mt-4">
+          <p className="text-center text-sm text-neutral-500 mt-5">
             Already registered?{' '}
-            <Link href="/login" className="text-blue-400 hover:text-blue-300">Sign in</Link>
+            <Link href="/login" className="text-neutral-900 font-semibold hover:underline">Sign in</Link>
           </p>
         </div>
       </div>
-
-      <style jsx>{`
-        .input-field {
-          width: 100%;
-          padding: 0.625rem 0.75rem;
-          background: rgba(30, 41, 59, 0.5);
-          border: 1px solid rgb(51, 65, 85);
-          border-radius: 0.5rem;
-          color: white;
-          font-size: 0.875rem;
-          outline: none;
-          transition: border-color 0.15s;
-        }
-        .input-field:focus { border-color: rgb(59, 130, 246); }
-        .input-field::placeholder { color: rgb(100, 116, 139); }
-      `}</style>
-    </div>
-  );
-}
-
-function Field({ label, id, children }: { label: string; id: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-300 mb-1.5">{label}</label>
-      {children}
     </div>
   );
 }

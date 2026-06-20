@@ -16,6 +16,15 @@ async def lifespan(app: FastAPI):
     # Startup
     os.makedirs(settings.uploads_dir, exist_ok=True)
     await init_db()
+    if settings.seed_demo_data:
+        try:
+            from seed import seed
+
+            await seed()
+        except Exception as exc:
+            if settings.debug:
+                raise
+            print(f"Demo seed skipped: {exc}")
     yield
     # Shutdown (cleanup if needed)
 

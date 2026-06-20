@@ -5,7 +5,7 @@ export default function ReceptionJourneysPage() {
     <EnhancementWorkspace
       title="Patient Journey"
       focus="Registration, consultation, lab, imaging, pharmacy, and billing step tracking."
-      endpoints={['Journey creation', 'Step updates', 'Current step', 'Routing metadata']}
+      mode="reception-journeys"
     />
   );
 }

@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # File storage
     uploads_dir: str = "uploads"
 
+    # Demo/dev data
+    seed_demo_data: bool = True
+
     class Config:
         env_file = ".env"
         case_sensitive = False

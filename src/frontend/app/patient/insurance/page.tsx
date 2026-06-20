@@ -5,7 +5,7 @@ export default function PatientInsurancePage() {
     <EnhancementWorkspace
       title="Insurance"
       focus="Policy storage, eligibility estimates, coverage data, and claims."
-      endpoints={['Policies', 'Eligibility checks', 'Coverage estimates', 'Claims']}
+      mode="patient-insurance"
     />
   );
 }
