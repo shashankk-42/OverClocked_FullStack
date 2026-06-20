@@ -9,6 +9,7 @@ import { AlertTriangle, Bed, ClipboardList, CreditCard, FileText, HeartPulse, La
 const NAV_ITEMS = [
   { href: '/patient/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/patient/emergency', label: 'Emergency', icon: Siren },
+  { href: '/patient/map', label: 'Hospital Map', icon: Map },
   { href: '/patient/book', label: 'Book Appointment', icon: Calendar },
   { href: '/patient/billing', label: 'Billing', icon: CreditCard },
   { href: '/patient/prescriptions', label: 'Prescriptions', icon: ClipboardList },
@@ -18,7 +19,6 @@ const NAV_ITEMS = [
   { href: '/patient/family', label: 'Family Access', icon: Users },
   { href: '/patient/insurance', label: 'Insurance', icon: ShieldCheck },
   { href: '/patient/rooms', label: 'Rooms', icon: Bed },
-  { href: '/patient/navigation', label: 'Hospital Map', icon: Map },
   { href: '/patient/journey', label: 'Care Journey', icon: HeartPulse },
   { href: '/patient/visual-triage', label: 'Visual Triage', icon: AlertTriangle },
   { href: '/patient/chat', label: 'AI Assistant', icon: MessageSquare },
