@@ -26,15 +26,15 @@ export default function ReceptionLayout({ children }: { children: React.ReactNod
   }, [user, isLoading, router]);
 
   if (isLoading || !user) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950">
-      <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+    <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+      <div className="w-6 h-6 border-2 border-neutral-900 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   return (
-    <div className="flex min-h-screen bg-slate-950">
+    <div className="flex min-h-screen bg-neutral-50">
       <Sidebar items={NAV_ITEMS} role="receptionist" />
-      <main className="ml-64 flex-1 p-6 animate-fadeIn">{children}</main>
+      <main className="ml-64 flex-1 p-8 animate-fadeIn">{children}</main>
     </div>
   );
 }

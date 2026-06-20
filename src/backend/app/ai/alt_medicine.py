@@ -69,6 +69,66 @@ Keep it conversational, warm, and in simple English. Format as readable paragrap
         return "Please follow your doctor's prescription instructions carefully. Contact your doctor if you experience any side effects."
 
 
+def offline_chat_response(message: str, patient_context: dict) -> str:
+    lower = message.lower()
+    medications = patient_context.get("medications")
+    appointments = patient_context.get("appointments")
+    name = patient_context.get("name", "there")
+
+    if any(word in lower for word in ["visiting hour", "visitor", "visiting time", "open hour", "hours open"]):
+        return (
+            "MediFlow Hospital visiting hours are typically 10:00 AM to 8:00 PM daily. "
+            "ICU visits are usually limited to 11:00 AM to 1:00 PM and 4:00 PM to 6:00 PM. "
+            "Please confirm with reception for ward-specific timings."
+        )
+    if any(word in lower for word in ["lab report", "test result", "blood test", "read my report", "lab result"]):
+        return (
+            "Your lab reports and test results are available under Test Results and Medical History. "
+            "Compare your values with the reference ranges shown on each report, and contact your doctor "
+            "if anything is marked critical or unclear."
+        )
+    if "metformin" in lower:
+        return (
+            "Metformin is commonly prescribed to help control blood sugar in diabetes. "
+            "It is usually taken with meals to reduce stomach upset. "
+            "Contact your doctor before stopping or changing the dose."
+        )
+    if any(word in lower for word in ["side effect", "side effects"]):
+        med_list = medications or "your prescribed medicines"
+        return (
+            f"Side effects depend on the specific medicine. Current medications on file: {med_list}. "
+            "Common issues may include nausea, dizziness, or rash — contact your doctor or pharmacist "
+            "if symptoms persist or worsen."
+        )
+    if any(word in lower for word in ["next appointment", "when is my appointment", "upcoming appointment"]):
+        appt = appointments or "I do not see an upcoming appointment in your records yet."
+        return (
+            f"Hi {name}, you can view and manage appointments from your Dashboard. "
+            f"{appt} Use Book Appointment to schedule a new visit."
+        )
+    if any(word in lower for word in ["appointment", "doctor", "queue", "scheduled"]):
+        return (
+            "Your appointment information is available in the Dashboard and Medical History sections. "
+            f"{appointments or 'I do not see an upcoming appointment in your current context.'} "
+            "For urgent scheduling changes, please contact reception."
+        )
+    if any(word in lower for word in ["medicine", "medication", "tablet", "prescription"]):
+        return (
+            "I can help explain your current medicines in simple terms. "
+            f"Current medications on file: {medications or 'none listed yet'}. "
+            "Please follow the prescription exactly and contact your doctor or pharmacist before changing a dose."
+        )
+    if any(word in lower for word in ["emergency", "chest pain", "breathing", "severe"]):
+        return (
+            "If this may be an emergency, please call emergency services or go to the nearest emergency "
+            "department immediately. Do not wait for an online response."
+        )
+    return (
+        "I can help with appointments, medicine explanations, hospital navigation, and general health questions. "
+        "Try asking about visiting hours, your medications, or your next appointment."
+    )
+
+
 async def ai_chat_response(message: str, patient_context: dict) -> str:
     """
     General AI assistant for patient queries.
@@ -89,13 +149,4 @@ Keep your response concise (2-4 sentences) and warm."""
     try:
         return await call_gemini(prompt, model="flash")
     except Exception:
-        lower = message.lower()
-        medications = patient_context.get("medications")
-        appointments = patient_context.get("appointments")
-        if any(word in lower for word in ["appointment", "visit", "doctor", "queue"]):
-            return f"Your appointment information is available in the Dashboard and Medical History sections. {appointments or 'I do not see an upcoming appointment in your current context.'} For urgent scheduling changes, please contact reception."
-        if any(word in lower for word in ["medicine", "medication", "tablet", "prescription", "metformin", "side effect"]):
-            return f"I can help explain your current medicines in simple terms. Current medications on file: {medications or 'none listed yet'}. Please follow the prescription exactly and contact your doctor or pharmacist before changing a dose."
-        if any(word in lower for word in ["emergency", "chest pain", "breathing", "severe"]):
-            return "If this may be an emergency, please call emergency services or go to the nearest emergency department immediately. Do not wait for an online response."
-        return "I can help with appointments, medicine explanations, hospital navigation, and general health questions. Live Gemini is not configured in this demo, so I am using a safe built-in response mode."
+        return offline_chat_response(message, patient_context)

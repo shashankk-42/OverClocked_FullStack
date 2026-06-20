@@ -16,7 +16,7 @@ from app.schemas.schemas import (
 from app.ai.triage import triage_symptoms
 from app.ai.soap_notes import generate_soap_notes
 from app.ai.prescription_gen import generate_prescription, check_drug_interactions
-from app.ai.alt_medicine import suggest_alternatives, explain_prescription, ai_chat_response
+from app.ai.alt_medicine import suggest_alternatives, explain_prescription, ai_chat_response, offline_chat_response
 from app.services.consultation import get_patient_history_context
 
 router = APIRouter(prefix="/ai", tags=["AI"])
@@ -152,7 +152,13 @@ async def chat(
         if latest_appt:
             doctor_result = await db.execute(select(Doctor).where(Doctor.id == latest_appt.doctor_id))
             doctor = doctor_result.scalar_one_or_none()
-            context["appointments"] = f"Latest visit with {doctor.name if doctor else 'doctor'} is {latest_appt.status}."
+            status_label = latest_appt.status.replace("_", " ")
+            context["appointments"] = (
+                f"Latest visit with {doctor.name if doctor else 'doctor'} is {status_label}."
+            )
 
-    response = await ai_chat_response(data.message, context)
+    try:
+        response = await ai_chat_response(data.message, context)
+    except Exception:
+        response = offline_chat_response(data.message, context)
     return {"response": response}

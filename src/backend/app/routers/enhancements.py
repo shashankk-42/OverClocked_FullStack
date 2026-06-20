@@ -413,12 +413,14 @@ async def create_emergency(
 @router.get("/emergencies")
 async def list_emergencies(
     status: str | None = None,
-    current_user: User = Depends(require_role("doctor", "nurse", "receptionist", "admin")),
+    current_user: User = Depends(require_role("patient", "doctor", "nurse", "receptionist", "admin")),
     db: AsyncSession = Depends(get_db),
 ):
     query = select(EmergencyEscalation).order_by(EmergencyEscalation.created_at.desc()).limit(100)
     if status:
         query = query.where(EmergencyEscalation.status == status)
+    if current_user.role == "patient":
+        query = query.where(EmergencyEscalation.patient_id == current_user.linked_id)
     result = await db.execute(query)
     return [model_to_dict(row) for row in result.scalars().all()]
 

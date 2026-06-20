@@ -320,6 +320,56 @@ aside.fixed {
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ─── App shell helpers ──────────────────────────── */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  background: #fafafa;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.page-subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--text-secondary);
+}
+
+.app-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.app-input {
+  height: 2.75rem;
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid #d4d4d4;
+  background: #ffffff;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  outline: none;
+  transition: box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.app-input::placeholder {
+  color: #a3a3a3;
+}
+
+.app-input:focus {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
 /* ─── Button helpers ─────────────────────────────── */
 button.bg-blue-600,
 button.bg-emerald-600,

@@ -44,13 +44,19 @@ export default function AIChatPage() {
 
     try {
       const res = await aiApi.chat(msg);
-      setMessages((prev) => [...prev, { role: 'ai', content: res.data.response, time: new Date() }]);
-    } catch {
+      const reply = res.data?.response?.trim();
       setMessages((prev) => [...prev, {
         role: 'ai',
-        content: "I'm having trouble connecting right now. Please try again or speak with our staff.",
-        time: new Date()
+        content: reply || "I couldn't generate a response just now. Please try again or contact reception for help.",
+        time: new Date(),
       }]);
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      const message = status === 403 || status === 401
+        ? 'Your session expired. Please sign out and log in again, then retry.'
+        : detail || "I'm having trouble connecting right now. Please try again or speak with our staff.";
+      setMessages((prev) => [...prev, { role: 'ai', content: message, time: new Date() }]);
     } finally {
       setLoading(false);
     }

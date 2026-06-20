@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Successful</title>
+    <link rel="stylesheet" href="payment-success.css" />
+  </head>
+  <body>
+    <main class="success-shell">
+      <section class="success-card">
+        <div class="success-icon" aria-hidden="true">✓</div>
+        <h1>Payment Successful</h1>
+        <p class="subtitle">Your test payment was verified and saved.</p>
+
+        <article class="receipt">
+          <div class="receipt-row">
+            <span>Razorpay Test Sandbox</span>
+            <strong id="amount">-</strong>
+          </div>
+          <p id="timestamp" class="timestamp">-</p>
+          <p id="payment-method" class="payment-method">-</p>
+          <p id="payment-id" class="payment-id">-</p>
+        </article>
+
+        <a class="home-link" href="/">Back to sandbox</a>
+      </section>
+    </main>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const amount = params.get("amount");
+      const paymentId = params.get("payment_id");
+      const method = params.get("method") || "UPI";
+      const storedAt = params.get("stored_at");
+
+      if (amount) {
+        document.getElementById("amount").textContent = `₹${Number(amount).toLocaleString("en-IN")}`;
+      }
+
+      document.getElementById("timestamp").textContent = storedAt
+        ? new Date(storedAt).toLocaleString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          })
+        : new Date().toLocaleString("en-IN");
+
+      document.getElementById("payment-method").textContent = `${method} | ${paymentId || "-"}`;
+      document.getElementById("payment-id").textContent = paymentId || "-";
+    </script>
+  </body>
+</html>

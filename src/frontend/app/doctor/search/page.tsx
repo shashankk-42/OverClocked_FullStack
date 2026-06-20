@@ -27,11 +27,11 @@ export default function DoctorPatientSearchPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Patient Search</h1>
-        <p className="mt-1 text-sm text-slate-400">Find a patient by PID, name, or phone before opening clinical history.</p>
+        <h1 className="page-title">Patient Search</h1>
+        <p className="page-subtitle">Find a patient by PID, name, or phone before opening clinical history.</p>
       </div>
 
-      <div className="glass-card rounded-xl border border-slate-700/50 p-5">
+      <div className="app-card p-5">
         <div className="flex gap-3">
           <input
             id="doctor-patient-search"
@@ -39,9 +39,9 @@ export default function DoctorPatientSearchPage() {
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => event.key === 'Enter' && runSearch()}
             placeholder="Search PID, name, or phone"
-            className="h-11 flex-1 rounded-lg border border-slate-700 bg-slate-900/70 px-4 text-sm text-white outline-none focus:border-blue-500"
+            className="app-input flex-1"
           />
-          <button id="doctor-search-btn" onClick={runSearch} className="inline-flex h-11 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-500">
+          <button id="doctor-search-btn" onClick={runSearch} className="inline-flex h-11 items-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-semibold text-white hover:bg-neutral-700">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             Search
           </button>
@@ -53,21 +53,21 @@ export default function DoctorPatientSearchPage() {
           <Link
             key={patient.id}
             href={`/doctor/patient/${patient.pid}?patientId=${patient.id}`}
-            className="glass-card flex items-center justify-between rounded-xl border border-slate-700/50 p-4 transition hover:border-blue-500/50"
+            className="app-card flex items-center justify-between p-4 transition hover:border-blue-300"
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600/20">
-                <UserRound className="h-5 w-5 text-blue-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+                <UserRound className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="font-semibold text-white">{patient.name}</p>
-                <p className="text-xs font-mono text-slate-400">{patient.pid} | {patient.phone}</p>
+                <p className="font-semibold text-neutral-900">{patient.name}</p>
+                <p className="text-xs font-mono text-neutral-500">{patient.pid} | {patient.phone}</p>
               </div>
             </div>
-            <span className="text-sm text-slate-400">{patient.gender || 'Unknown'} | {patient.blood_group || 'No blood group'}</span>
+            <span className="text-sm text-neutral-500">{patient.gender || 'Unknown'} | {patient.blood_group || 'No blood group'}</span>
           </Link>
         ))}
-        {query && !loading && results.length === 0 ? <p className="text-sm text-slate-500">No patients found yet.</p> : null}
+        {query && !loading && results.length === 0 ? <p className="text-sm text-neutral-500">No patients found yet.</p> : null}
       </div>
     </div>
   );

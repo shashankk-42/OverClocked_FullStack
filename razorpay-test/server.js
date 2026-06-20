@@ -23,6 +23,7 @@ const razorpay = new Razorpay({
 });
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/api/health", (req, res) => {
@@ -53,10 +54,63 @@ app.post("/api/create-order", async (req, res) => {
     return res.json(order);
   } catch (error) {
     console.error("Order creation failed:", error);
-    return res.status(500).json({
+    const details = error?.error?.description || error.message;
+    const statusCode = error?.statusCode === 401 ? 401 : 500;
+    return res.status(statusCode).json({
       error: "Unable to create order",
-      details: error?.error?.description || error.message,
+      details,
     });
+  }
+});
+
+function verifyPaymentSignature(orderId, paymentId, signature) {
+  const body = `${orderId}|${paymentId}`;
+  const expectedSignature = crypto
+    .createHmac("sha256", keySecret)
+    .update(body)
+    .digest("hex");
+
+  return expectedSignature === signature;
+}
+
+app.post("/payment/callback", async (req, res) => {
+  try {
+    const {
+      razorpay_order_id: orderId,
+      razorpay_payment_id: paymentId,
+      razorpay_signature: signature,
+    } = req.body || {};
+
+    if (!orderId || !paymentId || !signature) {
+      return res.status(400).send("Missing payment details.");
+    }
+
+    const isAuthentic = verifyPaymentSignature(orderId, paymentId, signature);
+
+    const saved = await savePaymentRecord({
+      razorpay_order_id: orderId,
+      razorpay_payment_id: paymentId,
+      razorpay_signature: signature,
+      is_signature_valid: isAuthentic,
+    });
+
+    if (!isAuthentic) {
+      return res.status(400).send("Payment signature verification failed.");
+    }
+
+    const order = await razorpay.orders.fetch(orderId);
+    const amountInRupees = Number(order.amount) / 100;
+    const params = new URLSearchParams({
+      amount: String(amountInRupees),
+      payment_id: paymentId,
+      method: "UPI",
+      stored_at: saved.created_at,
+    });
+
+    return res.redirect(`/payment-success.html?${params.toString()}`);
+  } catch (error) {
+    console.error("Payment callback failed:", error);
+    return res.status(500).send("Unable to process payment callback.");
   }
 });
 
@@ -72,12 +126,11 @@ app.post("/api/verify-payment", async (req, res) => {
     }
 
     const body = `${razorpay_order_id}|${razorpay_payment_id}`;
-    const expectedSignature = crypto
-      .createHmac("sha256", keySecret)
-      .update(body)
-      .digest("hex");
-
-    const isAuthentic = expectedSignature === razorpay_signature;
+    const isAuthentic = verifyPaymentSignature(
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature
+    );
 
     const saved = await savePaymentRecord({
       razorpay_order_id,

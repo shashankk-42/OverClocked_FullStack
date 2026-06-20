@@ -20,6 +20,7 @@
         <h1>Razorpay Integration Sandbox</h1>
         <p class="subtitle">
           End-to-end test setup for creating orders, opening checkout, and verifying payment signatures.
+          Open this page in a wide browser window to get the full desktop checkout layout.
         </p>
 
         <div class="grid">
@@ -45,6 +46,20 @@
         </div>
 
         <button id="pay-btn">Pay with Razorpay</button>
+
+        <aside class="test-guide">
+          <h2>How to reach the success screen</h2>
+          <p>
+            The green success screen only appears after a successful test payment.
+            If you see “International cards are not supported”, the card number is not valid for INR test mode.
+          </p>
+          <ul>
+            <li><strong>Fastest:</strong> UPI → enter <code>success@razorpay</code></li>
+            <li><strong>Netbanking / Wallet:</strong> pick any option → click <strong>Success</strong> on the mock bank page</li>
+            <li><strong>Indian test card:</strong> <code>5267 3181 8797 5449</code> (any future expiry, any CVV, OTP 1234)</li>
+          </ul>
+          <p class="test-guide-note">Do not use <code>4111 1111 1111 1111</code> here — Razorpay treats it as international for INR.</p>
+        </aside>
 
         <div id="status" class="status info">Ready for test transaction.</div>
 
