@@ -5,7 +5,7 @@ import { authApi } from '@/lib/api';
 
 export interface AuthUser {
   user_id: string;
-  role: 'patient' | 'doctor' | 'receptionist' | 'pharmacist' | 'admin';
+  role: 'patient' | 'doctor' | 'nurse' | 'receptionist' | 'pharmacist' | 'admin';
   email?: string;
   phone?: string;
   name?: string;

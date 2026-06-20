@@ -4,12 +4,15 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/shared/Sidebar';
-import { LayoutDashboard, Search, ClipboardList } from 'lucide-react';
+import { AlertTriangle, ClipboardList, HeartPulse, LayoutDashboard, Search, Stethoscope } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/doctor/dashboard', label: 'My Queue', icon: LayoutDashboard },
   { href: '/doctor/search', label: 'Patient Search', icon: Search },
   { href: '/doctor/prescriptions', label: 'Prescriptions', icon: ClipboardList },
+  { href: '/doctor/emergencies', label: 'Emergencies', icon: AlertTriangle },
+  { href: '/doctor/follow-ups', label: 'Follow-Ups', icon: HeartPulse },
+  { href: '/doctor/care-teams', label: 'Care Teams', icon: Stethoscope },
 ];
 
 export default function DoctorLayout({ children }: { children: React.ReactNode }) {

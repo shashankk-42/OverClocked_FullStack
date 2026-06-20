@@ -108,3 +108,130 @@ export const aiApi = {
     apiClient.post(`/ai/explain-rx/${prescriptionId}`),
   chat: (message: string) => apiClient.post('/ai/chat', { message }),
 };
+
+// Enhancements
+export const enhancementsApi = {
+  auditLogs: (params?: Record<string, unknown>) =>
+    apiClient.get('/enhancements/audit-logs', { params }),
+  notifications: () => apiClient.get('/enhancements/notifications'),
+  markNotificationRead: (id: string) =>
+    apiClient.patch(`/enhancements/notifications/${id}/read`),
+
+  createEmergency: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/emergencies', data),
+  emergencies: (params?: Record<string, unknown>) =>
+    apiClient.get('/enhancements/emergencies', { params }),
+  assignEmergency: (id: string, assignedResponders: Record<string, unknown>[]) =>
+    apiClient.patch(`/enhancements/emergencies/${id}/assign`, { assigned_responders: assignedResponders }),
+  updateEmergencyStatus: (id: string, status: string, notes?: string) =>
+    apiClient.patch(`/enhancements/emergencies/${id}/status`, { status, notes }),
+
+  createFollowUpPlan: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/follow-ups/plans', data),
+  myFollowUps: () => apiClient.get('/enhancements/follow-ups/my'),
+  followUpReview: () => apiClient.get('/enhancements/follow-ups/review'),
+  submitFollowUp: (id: string, data: Record<string, unknown>) =>
+    apiClient.post(`/enhancements/follow-ups/${id}/responses`, data),
+  scoreFollowUp: (id: string) =>
+    apiClient.post(`/enhancements/follow-ups/${id}/risk-score`),
+  reviewFollowUp: (id: string, status: string, notes?: string) =>
+    apiClient.patch(`/enhancements/follow-ups/${id}/review`, { status, notes }),
+
+  medicationTimeline: (patientId: string) =>
+    apiClient.get(`/enhancements/medications/timeline/${patientId}`),
+  registerDispenser: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/devices/dispensers', data),
+  syncDispenser: (id: string) =>
+    apiClient.post(`/enhancements/devices/dispensers/${id}/sync`),
+  dispenserEvent: (id: string, data: Record<string, unknown>) =>
+    apiClient.post(`/enhancements/devices/dispensers/${id}/events`, data),
+
+  waitPrediction: (appointmentId: string) =>
+    apiClient.get(`/enhancements/appointments/${appointmentId}/wait-prediction`),
+  createWaitlistEntry: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/appointments/waitlist', data),
+  myWaitlist: () => apiClient.get('/enhancements/appointments/waitlist/my'),
+  createEarlierOffer: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/appointments/offers', data),
+  acceptEarlierOffer: (id: string) =>
+    apiClient.post(`/enhancements/appointments/offers/${id}/accept`),
+  recoveryOptions: (appointmentId: string) =>
+    apiClient.get(`/enhancements/appointments/${appointmentId}/recovery-options`),
+
+  createRoom: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/rooms', data),
+  createBed: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/beds', data),
+  roomAvailability: () => apiClient.get('/enhancements/rooms/availability'),
+  publicRoomAvailability: () => apiClient.get('/enhancements/rooms/public-availability'),
+  updateBedStatus: (id: string, data: Record<string, unknown>) =>
+    apiClient.patch(`/enhancements/beds/${id}/status`, data),
+
+  prescriptionCostAnalysis: (prescriptionId: string) =>
+    apiClient.get(`/enhancements/prescriptions/${prescriptionId}/cost-analysis`),
+  createSubstitutionRequest: (prescriptionId: string, data: Record<string, unknown>) =>
+    apiClient.post(`/enhancements/prescriptions/${prescriptionId}/substitution-requests`, data),
+  approveSubstitutionRequest: (id: string, status: string, notes?: string) =>
+    apiClient.patch(`/enhancements/substitution-requests/${id}/approve`, { status, notes }),
+
+  createFamily: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/families', data),
+  addFamilyMember: (familyId: string, data: Record<string, unknown>) =>
+    apiClient.post(`/enhancements/families/${familyId}/members`, data),
+  myFamilies: () => apiClient.get('/enhancements/families/my'),
+
+  createInsurancePolicy: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/insurance/policies', data),
+  insurancePolicies: (patientId?: string) =>
+    apiClient.get('/enhancements/insurance/policies', { params: { patient_id: patientId } }),
+  eligibilityCheck: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/insurance/eligibility-checks', data),
+  createClaim: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/insurance/claims', data),
+
+  startAssistantConversation: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/assistant/conversations', data),
+  sendAssistantMessage: (conversationId: string, message: string) =>
+    apiClient.post(`/enhancements/assistant/conversations/${conversationId}/messages`, { message }),
+  escalateAssistantConversation: (conversationId: string, data: Record<string, unknown>) =>
+    apiClient.post(`/enhancements/assistant/conversations/${conversationId}/escalate`, data),
+
+  createProfileEntry: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/profile/entries', data),
+  comprehensiveProfile: (patientId: string) =>
+    apiClient.get(`/enhancements/profile/${patientId}`),
+  createVital: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/profile/vitals', data),
+
+  createQrAccessToken: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/qr-access/tokens', data),
+  readQrAccess: (token: string) => apiClient.get(`/enhancements/qr-access/${token}`),
+  shareReport: (reportId: string, data: Record<string, unknown>) =>
+    apiClient.post(`/enhancements/reports/${reportId}/share`, data),
+
+  createCareTeam: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/care-teams', data),
+  addCareTeamMember: (teamId: string, data: Record<string, unknown>) =>
+    apiClient.post(`/enhancements/care-teams/${teamId}/members`, data),
+  createCareNote: (teamId: string, data: Record<string, unknown>) =>
+    apiClient.post(`/enhancements/care-teams/${teamId}/notes`, data),
+  createTreatmentPlan: (teamId: string, data: Record<string, unknown>) =>
+    apiClient.post(`/enhancements/care-teams/${teamId}/treatment-plans`, data),
+  createReferral: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/care-teams/referrals', data),
+
+  createJourney: (data: Record<string, unknown>) =>
+    apiClient.post('/enhancements/journeys', data),
+  updateJourneyStep: (journeyId: string, stepId: string, status: string) =>
+    apiClient.patch(`/enhancements/journeys/${journeyId}/steps/${stepId}`, { status }),
+  myCurrentJourney: () => apiClient.get('/enhancements/journeys/my/current'),
+
+  uploadVisualTriage: (data: FormData) =>
+    apiClient.post('/enhancements/visual-triage/uploads', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  analyzeVisualTriage: (id: string, data?: Record<string, unknown>) =>
+    apiClient.post(`/enhancements/visual-triage/${id}/analyze`, data || {}),
+  getVisualTriage: (id: string) =>
+    apiClient.get(`/enhancements/visual-triage/${id}`),
+};

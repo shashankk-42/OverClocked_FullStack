@@ -4,12 +4,16 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/shared/Sidebar';
-import { LayoutDashboard, Users, ClipboardList } from 'lucide-react';
+import { AlertTriangle, Bed, ClipboardList, HeartPulse, LayoutDashboard, TimerReset, Users } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/reception/dashboard', label: 'Queue Board', icon: LayoutDashboard },
   { href: '/reception/check-in', label: 'Check-In', icon: Users },
   { href: '/reception/appointments', label: 'Appointments', icon: ClipboardList },
+  { href: '/reception/emergencies', label: 'Emergencies', icon: AlertTriangle },
+  { href: '/reception/rooms', label: 'Rooms & Beds', icon: Bed },
+  { href: '/reception/journeys', label: 'Patient Journey', icon: HeartPulse },
+  { href: '/reception/waitlist', label: 'Earlier Slots', icon: TimerReset },
 ];
 
 export default function ReceptionLayout({ children }: { children: React.ReactNode }) {

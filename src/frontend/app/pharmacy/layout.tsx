@@ -4,12 +4,14 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/shared/Sidebar';
-import { LayoutDashboard, Package, ClipboardList } from 'lucide-react';
+import { ClipboardList, IndianRupee, LayoutDashboard, Package, Pill } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/pharmacy/dashboard', label: 'Prescriptions', icon: LayoutDashboard },
   { href: '/pharmacy/inventory', label: 'Inventory', icon: Package },
   { href: '/pharmacy/bills', label: 'Billing', icon: ClipboardList },
+  { href: '/pharmacy/cost-analysis', label: 'Cost Analysis', icon: IndianRupee },
+  { href: '/pharmacy/dispensers', label: 'Dispensers', icon: Pill },
 ];
 
 export default function PharmacyLayout({ children }: { children: React.ReactNode }) {
