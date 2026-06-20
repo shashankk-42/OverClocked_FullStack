@@ -50,10 +50,10 @@ function StethoscopeIcon({ className }: { className?: string }) {
 }
 
 function locationStyle(location: Location, highlighted: boolean, selected: boolean) {
-  if (selected) return 'border-blue-500 bg-blue-600 text-white shadow-md';
-  if (highlighted) return 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-sm';
-  if (location.is_restricted) return 'border-red-200 bg-red-50 text-red-800';
-  return 'border-neutral-200 bg-white text-neutral-800 hover:border-neutral-400';
+  if (selected) return 'border-neutral-900 bg-neutral-900 text-white shadow-md z-20';
+  if (highlighted) return 'border-neutral-500 bg-neutral-800 text-white shadow-sm z-10';
+  if (location.is_restricted) return 'border-neutral-300 bg-neutral-100 text-neutral-500';
+  return 'border-neutral-200 bg-white text-neutral-800 hover:border-neutral-500 hover:shadow-sm hover:z-10';
 }
 
 export function HospitalNavigationMap({ mode = 'patient' }: { mode?: 'patient' | 'reception' }) {
@@ -144,7 +144,7 @@ export function HospitalNavigationMap({ mode = 'patient' }: { mode?: 'patient' |
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_1fr]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(280px,340px)_1fr]">
         <aside className="space-y-4">
           <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
             <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-neutral-500">Destination</label>
@@ -154,21 +154,27 @@ export function HospitalNavigationMap({ mode = 'patient' }: { mode?: 'patient' |
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search room, lab, pharmacy..."
-                className="app-input pl-9"
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 pl-9 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-200"
               />
             </div>
-            <div className="mt-4 max-h-72 space-y-2 overflow-y-auto">
+            <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
               {(query ? filtered : allLocations).slice(0, 30).map((location) => (
                 <button
                   key={location.code}
                   onClick={() => findRoute(location)}
-                  className="flex w-full items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-left text-sm hover:border-neutral-300"
+                  className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left text-sm transition ${
+                    selected?.code === location.code
+                      ? 'border-blue-200 bg-blue-50'
+                      : 'border-neutral-200 bg-neutral-50 hover:border-neutral-300 hover:bg-white'
+                  }`}
                 >
-                  <span>
+                  <span className="min-w-0">
                     <span className="block font-semibold text-neutral-900">{location.name}</span>
-                    <span className="text-xs text-neutral-500">Floor {location.floor}{location.room_number ? ` | Room ${location.room_number}` : ''}</span>
+                    <span className="text-xs text-neutral-500">
+                      Floor {location.floor}{location.room_number ? ` | Room ${location.room_number}` : ''}
+                    </span>
                   </span>
-                  <ChevronRight className="h-4 w-4 text-neutral-400" />
+                  <ChevronRight className="h-4 w-4 flex-shrink-0 text-neutral-400" />
                 </button>
               ))}
             </div>
@@ -183,13 +189,13 @@ export function HospitalNavigationMap({ mode = 'patient' }: { mode?: 'patient' |
             ) : route ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-2 text-center">
-                  <div className="rounded-xl bg-emerald-50 p-3 text-emerald-700">
+                  <div className="rounded-xl bg-neutral-100 border border-neutral-200 p-3 text-neutral-800">
                     <p className="text-xl font-bold">{route.estimated_minutes}</p>
-                    <p className="text-xs">minutes</p>
+                    <p className="text-xs text-neutral-500">minutes</p>
                   </div>
-                  <div className="rounded-xl bg-blue-50 p-3 text-blue-700">
+                  <div className="rounded-xl bg-neutral-100 border border-neutral-200 p-3 text-neutral-800">
                     <p className="text-xl font-bold">{route.floor_changes}</p>
-                    <p className="text-xs">floor changes</p>
+                    <p className="text-xs text-neutral-500">floor changes</p>
                   </div>
                 </div>
                 <ol className="space-y-2">
@@ -219,8 +225,10 @@ export function HospitalNavigationMap({ mode = 'patient' }: { mode?: 'patient' |
                 <button
                   key={item}
                   onClick={() => setFloor(item)}
-                  className={`rounded-lg px-3 py-2 text-sm font-semibold ${
-                    floor === item ? 'bg-neutral-900 text-white' : 'border border-neutral-200 bg-neutral-50 text-neutral-700'
+                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    floor === item
+                      ? 'bg-neutral-900 text-white shadow-sm'
+                      : 'border border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
                   }`}
                 >
                   Floor {item}
@@ -231,30 +239,36 @@ export function HospitalNavigationMap({ mode = 'patient' }: { mode?: 'patient' |
           </div>
 
           {isLoading ? (
-            <div className="flex h-[520px] items-center justify-center">
+            <div className="flex h-[min(560px,70vh)] items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
             </div>
           ) : (
-            <div className="relative min-h-[520px] overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
-              <div className="absolute inset-x-4 top-1/2 h-3 -translate-y-1/2 rounded-full bg-neutral-200" />
-              <div className="absolute inset-y-4 left-1/2 w-3 -translate-x-1/2 rounded-full bg-neutral-200" />
-              {locations.map((location) => {
-                const Icon = TYPE_ICON[location.location_type] || MapPin;
-                const highlighted = pathCodes.has(location.code);
-                const isSelected = selected?.code === location.code;
-                return (
-                  <button
-                    key={location.code}
-                    onClick={() => findRoute(location)}
-                    style={{ left: `${location.x}%`, top: `${location.y}%` }}
-                    className={`absolute min-h-14 w-28 -translate-x-1/2 -translate-y-1/2 rounded-xl border p-2 text-left text-xs transition ${locationStyle(location, highlighted, isSelected)}`}
-                  >
-                    <Icon className="mb-1 h-4 w-4" />
-                    <span className="block truncate font-semibold">{location.name}</span>
-                    <span className="block truncate opacity-80">{location.room_number || location.location_type}</span>
-                  </button>
-                );
-              })}
+            <div className="relative w-full" style={{ paddingBottom: '62%' }}>
+              <div className="absolute inset-0 overflow-hidden rounded-xl border border-neutral-200 bg-[linear-gradient(to_bottom,#fafafa_0%,#f5f5f5_100%)]">
+                {/* Corridor guide lines */}
+                <div className="pointer-events-none absolute inset-x-8 top-1/2 h-px -translate-y-1/2 bg-neutral-300" />
+                <div className="pointer-events-none absolute inset-y-8 left-1/2 w-px -translate-x-1/2 bg-neutral-300" />
+                {locations.map((location) => {
+                  const Icon = TYPE_ICON[location.location_type] || MapPin;
+                  const highlighted = pathCodes.has(location.code);
+                  const isSelected = selected?.code === location.code;
+                  return (
+                    <button
+                      key={location.code}
+                      onClick={() => findRoute(location)}
+                      title={location.name}
+                      style={{ left: `${location.x}%`, top: `${location.y}%` }}
+                      className={`group absolute w-[6rem] -translate-x-1/2 -translate-y-1/2 rounded-lg border p-1.5 text-left text-[10px] leading-tight transition-all duration-150 ${locationStyle(location, highlighted, isSelected)}`}
+                    >
+                      <Icon className="mb-0.5 h-3 w-3 flex-shrink-0" />
+                      <span className="block truncate font-semibold">{location.name}</span>
+                      <span className="block truncate opacity-70">
+                        {location.room_number || location.location_type.replace(/_/g, ' ')}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </section>

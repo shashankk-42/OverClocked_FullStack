@@ -150,21 +150,26 @@ async def create_prescription_route(
             await db.flush()
 
         await sync_medication_timeline_from_prescription(db, prescription)
+
         await notify(
             db,
-            title="Prescription ready for review",
-            message="Your doctor finalized a prescription. Review and approve medicines to send it to pharmacy.",
+            title="Prescription ready",
+            message="Your doctor finalized a prescription. Choose whether to collect medicines from the hospital pharmacy.",
             notification_type="prescription",
             patient_id=prescription.patient_id,
             priority="high",
-            payload={"prescription_id": str(prescription.id), "order_id": str(order.id)},
+            payload={
+                "prescription_id": str(prescription.id),
+                "order_id": str(order.id),
+                "action": "pharmacy_pickup_choice",
+            },
         )
         return {
             "id": str(prescription.id),
             "pharmacy_order_id": str(order.id),
             "status": prescription.status,
             "pdf_url": f"/uploads/{prescription.pdf_path}" if prescription.pdf_path else None,
-            "message": "Prescription finalized and sent to patient for pharmacy approval",
+            "message": "Prescription finalized — patient will choose hospital pharmacy pickup",
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

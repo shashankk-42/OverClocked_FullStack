@@ -120,6 +120,34 @@ async def send_payment_link_notification(
     bill.payment_link_sent_at = datetime.now(timezone.utc)
 
 
+async def send_pharmacy_payment_link_notification(
+    db: AsyncSession,
+    bill: Bill,
+    order_id: uuid.UUID,
+) -> None:
+    patient_user = await get_patient_user(db, bill.patient_id)
+    amount = float(bill.total_amount)
+    payment_url = f"{settings.frontend_url}/patient/billing?bill={bill.id}"
+
+    await notify(
+        db,
+        title="Pharmacy payment due",
+        message=f"Your medicines are packed and ready. Please pay ₹{amount:.2f} to collect from the hospital pharmacy.",
+        notification_type="payment",
+        user_id=patient_user.id if patient_user else None,
+        patient_id=bill.patient_id,
+        priority="high",
+        payload={
+            "bill_id": str(bill.id),
+            "order_id": str(order_id),
+            "amount": amount,
+            "payment_url": payment_url,
+            "bill_type": "pharmacy",
+        },
+    )
+    bill.payment_link_sent_at = datetime.now(timezone.utc)
+
+
 async def get_patient_pending_bills(db: AsyncSession, patient_id: uuid.UUID) -> list[Bill]:
     result = await db.execute(
         select(Bill)
@@ -267,6 +295,21 @@ async def verify_and_mark_paid(
 
 
 def bill_to_dict(bill: Bill, patient: Patient | None = None, doctor: Doctor | None = None) -> dict:
+    items = bill.items or []
+    is_pharmacy = bill.bill_type == "pharmacy"
+
+    if is_pharmacy:
+        medicine_names = [
+            item.get("medicine_name") or item.get("description") or "Medicine"
+            for item in items
+        ]
+        title = "Hospital pharmacy medicines"
+        source_label = "hospital pharmacy"
+    else:
+        medicine_names = []
+        title = items[0].get("description") if items else "Consultation fee"
+        source_label = "doctor"
+
     return {
         "id": str(bill.id),
         "patient_id": str(bill.patient_id),
@@ -274,8 +317,12 @@ def bill_to_dict(bill: Bill, patient: Patient | None = None, doctor: Doctor | No
         "patient_pid": patient.pid if patient else None,
         "appointment_id": str(bill.appointment_id) if bill.appointment_id else None,
         "prescription_id": str(bill.prescription_id) if bill.prescription_id else None,
-        "bill_type": bill.bill_type,
-        "items": bill.items or [],
+        "bill_type": bill.bill_type or "consultation",
+        "title": title,
+        "source_label": source_label,
+        "medicine_count": len(medicine_names) if is_pharmacy else 0,
+        "medicine_names": medicine_names,
+        "items": items,
         "subtotal": float(bill.subtotal),
         "tax": float(bill.tax),
         "total_amount": float(bill.total_amount),

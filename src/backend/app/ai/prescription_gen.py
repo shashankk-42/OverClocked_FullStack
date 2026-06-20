@@ -1,5 +1,5 @@
 import json
-from app.ai.gemini_client import call_gemini
+from app.ai.gemini_client import call_gemini, clean_json_response
 
 
 def offline_prescription(diagnosis: str) -> list[dict]:
@@ -115,12 +115,7 @@ Important: Only suggest medications appropriate for the diagnosis. Include 1-4 m
 
     try:
         response = await call_gemini(prompt, model="pro")
-        cleaned = response.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("```")[1]
-            if cleaned.startswith("json"):
-                cleaned = cleaned[4:]
-        medicines = json.loads(cleaned.strip())
+        medicines = json.loads(clean_json_response(response))
         if isinstance(medicines, list) and medicines:
             return medicines
     except Exception:
@@ -169,12 +164,7 @@ Respond ONLY with valid JSON:
 
     try:
         response = await call_gemini(prompt, model="flash")
-        cleaned = response.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("```")[1]
-            if cleaned.startswith("json"):
-                cleaned = cleaned[4:]
-        return json.loads(cleaned.strip())
+        return json.loads(clean_json_response(response))
     except Exception:
         return {
             "has_interactions": False,

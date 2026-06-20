@@ -14,8 +14,9 @@ from app.services.appointment import (
     book_appointment, get_appointments_for_patient,
     get_appointments_for_doctor_today, check_in_patient,
     get_available_doctors, get_available_slots, get_queue_for_doctor,
-    update_appointment_state,
+    update_appointment_state, get_pending_approval_appointments,
 )
+from app.services.appointment_notifications import notify_appointment_status_change
 
 router = APIRouter(prefix="/appointments", tags=["Appointments"])
 
@@ -118,6 +119,43 @@ async def my_appointments(
     return result_list
 
 
+async def _serialize_appointments(db: AsyncSession, appointments: list) -> list[dict]:
+    result_list = []
+    for a in appointments:
+        patient_result = await db.execute(select(Patient).where(Patient.id == a.patient_id))
+        patient = patient_result.scalar_one_or_none()
+        dr_result = await db.execute(select(Doctor).where(Doctor.id == a.doctor_id))
+        doctor = dr_result.scalar_one_or_none()
+
+        result_list.append({
+            "id": str(a.id),
+            "patient_id": str(a.patient_id),
+            "doctor_id": str(a.doctor_id),
+            "patient_name": patient.name if patient else "Unknown",
+            "patient_pid": patient.pid if patient else "Unknown",
+            "patient_phone": patient.phone if patient else "",
+            "doctor_name": doctor.name if doctor else "Unknown",
+            "department": doctor.department if doctor else "",
+            "scheduled_at": a.scheduled_at.isoformat(),
+            "status": a.status,
+            "queue_position": a.queue_position,
+            "chief_complaint": a.chief_complaint,
+            "priority": a.priority,
+        })
+    return result_list
+
+
+@router.get("/pending-approval")
+async def pending_approval_appointments(
+    current_user: User = Depends(require_role("receptionist", "admin", "doctor")),
+    db: AsyncSession = Depends(get_db),
+):
+    """All booked appointments from today onward awaiting approval."""
+    doctor_id = current_user.linked_id if current_user.role == "doctor" else None
+    appointments = await get_pending_approval_appointments(db, doctor_id=doctor_id)
+    return await _serialize_appointments(db, appointments)
+
+
 @router.get("/today")
 async def today_appointments(
     current_user: User = Depends(require_role("doctor", "receptionist", "admin")),
@@ -144,29 +182,7 @@ async def today_appointments(
         )
         appointments = list(result.scalars().all())
 
-    result_list = []
-    for a in appointments:
-        patient_result = await db.execute(select(Patient).where(Patient.id == a.patient_id))
-        patient = patient_result.scalar_one_or_none()
-        dr_result = await db.execute(select(Doctor).where(Doctor.id == a.doctor_id))
-        doctor = dr_result.scalar_one_or_none()
-
-        result_list.append({
-            "id": str(a.id),
-            "patient_id": str(a.patient_id),
-            "doctor_id": str(a.doctor_id),
-            "patient_name": patient.name if patient else "Unknown",
-            "patient_pid": patient.pid if patient else "Unknown",
-            "patient_phone": patient.phone if patient else "",
-            "doctor_name": doctor.name if doctor else "Unknown",
-            "department": doctor.department if doctor else "",
-            "scheduled_at": a.scheduled_at.isoformat(),
-            "status": a.status,
-            "queue_position": a.queue_position,
-            "chief_complaint": a.chief_complaint,
-            "priority": a.priority,
-        })
-    return result_list
+    return await _serialize_appointments(db, appointments)
 
 
 @router.post("/check-in/{appointment_id}")
@@ -175,8 +191,17 @@ async def check_in(
     current_user: User = Depends(require_role("receptionist", "admin")),
     db: AsyncSession = Depends(get_db),
 ):
+    from app.models.appointment import Appointment
     try:
+        result = await db.execute(select(Appointment).where(Appointment.id == uuid.UUID(appointment_id)))
+        existing = result.scalar_one_or_none()
+        if not existing:
+            raise HTTPException(status_code=404, detail="Appointment not found")
+        old_status = existing.status
         appointment = await check_in_patient(db, uuid.UUID(appointment_id), target_status="waiting")
+        await notify_appointment_status_change(
+            db, appointment, old_status, appointment.status, current_user.role
+        )
         return {
             "id": str(appointment.id),
             "status": appointment.status,
@@ -226,10 +251,15 @@ async def update_status(
     if current_user.role == "doctor" and appt.doctor_id != current_user.linked_id:
         raise HTTPException(status_code=403, detail="Not your appointment")
 
+    old_status = appt.status
     try:
         appt = await update_appointment_state(db, appt, status)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+    await notify_appointment_status_change(
+        db, appt, old_status, appt.status, current_user.role
+    )
 
     return {
         "message": "Status updated",
@@ -256,10 +286,15 @@ async def update_presence(
         existing = f"{appt.notes}\n" if appt.notes else ""
         appt.notes = f"{existing}{data.notes}".strip()
 
+    old_status = appt.status
     try:
         appt = await update_appointment_state(db, appt, data.status)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+    await notify_appointment_status_change(
+        db, appt, old_status, appt.status, current_user.role
+    )
 
     return {
         "message": "Presence updated",

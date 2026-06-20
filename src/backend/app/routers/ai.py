@@ -11,7 +11,7 @@ from app.models.appointment import Appointment
 from app.models.doctor import Doctor
 from app.schemas.schemas import (
     TriageRequest, SOAPRequest, PrescriptionGenRequest,
-    AltMedicineRequest, ChatRequest, RxExplainRequest
+    AltMedicineRequest, ChatRequest, RxExplainRequest, DrugInteractionRequest
 )
 from app.ai.triage import triage_symptoms
 from app.ai.soap_notes import generate_soap_notes
@@ -62,19 +62,33 @@ async def generate_rx(
 
 @router.post("/drug-interaction")
 async def drug_interaction(
-    medicines: list[str],
-    patient_id: str | None = None,
+    data: DrugInteractionRequest,
     current_user: User = Depends(require_role("doctor", "pharmacist")),
     db: AsyncSession = Depends(get_db),
 ):
     allergies = ""
-    if patient_id:
-        result = await db.execute(select(Patient).where(Patient.id == uuid.UUID(patient_id)))
+    current_meds: list[str] = []
+
+    if data.patient_id:
+        result = await db.execute(select(Patient).where(Patient.id == uuid.UUID(data.patient_id)))
         patient = result.scalar_one_or_none()
         if patient:
             allergies = patient.allergies or ""
 
-    result = await check_drug_interactions(medicines, allergies)
+        # Fetch latest prescription to get current medications
+        from app.models.prescription import Prescription
+        from sqlalchemy import desc
+        rx_result = await db.execute(
+            select(Prescription)
+            .where(Prescription.patient_id == uuid.UUID(data.patient_id))
+            .order_by(desc(Prescription.created_at))
+            .limit(1)
+        )
+        latest_rx = rx_result.scalar_one_or_none()
+        if latest_rx and latest_rx.medicines:
+            current_meds = [m.get("name", "") for m in latest_rx.medicines if m.get("name")]
+
+    result = await check_drug_interactions(data.medicines, allergies, current_meds)
     return result
 
 

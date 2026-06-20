@@ -61,6 +61,7 @@ export const appointmentsApi = {
   book: (data: Record<string, unknown>) => apiClient.post('/appointments/book', data),
   myAppointments: () => apiClient.get('/appointments/my'),
   today: () => apiClient.get('/appointments/today'),
+  pendingApproval: () => apiClient.get('/appointments/pending-approval'),
   checkIn: (appointmentId: string) =>
     apiClient.post(`/appointments/check-in/${appointmentId}`),
   getQueue: (doctorId: string) => apiClient.get(`/appointments/queue/${doctorId}`),
@@ -115,6 +116,10 @@ export const pharmacyApi = {
   pendingPrescriptions: () => apiClient.get('/pharmacy/prescriptions/pending'),
   orders: (status?: string) => apiClient.get('/pharmacy/orders', { params: { status } }),
   approveOrder: (orderId: string) => apiClient.post(`/pharmacy/orders/${orderId}/approve`),
+  pickupChoice: (orderId: string, collectFromHospital: boolean) =>
+    apiClient.post(`/pharmacy/orders/${orderId}/pickup-choice`, { collect_from_hospital: collectFromHospital }),
+  sendPaymentLink: (orderId: string) =>
+    apiClient.post(`/pharmacy/orders/${orderId}/send-payment-link`),
   updateOrderStatus: (orderId: string, status: string, notes?: string) =>
     apiClient.patch(`/pharmacy/orders/${orderId}/status`, { status, notes }),
   dispense: (prescriptionId: string) =>
@@ -156,7 +161,7 @@ export const aiApi = {
   generatePrescription: (diagnosis: string, patientId: string) =>
     apiClient.post('/ai/prescription/generate', { diagnosis, patient_id: patientId }),
   drugInteraction: (medicines: string[], patientId?: string) =>
-    apiClient.post('/ai/drug-interaction', medicines, { params: { patient_id: patientId } }),
+    apiClient.post('/ai/drug-interaction', { medicines, patient_id: patientId }),
   altMedicine: (medicineName: string, diagnosis: string, patientId?: string) =>
     apiClient.post('/ai/alt-medicine', { medicine_name: medicineName, diagnosis, patient_id: patientId }),
   explainRx: (prescriptionId: string) =>

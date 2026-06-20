@@ -1,5 +1,5 @@
 import json
-from app.ai.gemini_client import call_gemini
+from app.ai.gemini_client import call_gemini, clean_json_response
 
 
 async def suggest_alternatives(
@@ -30,12 +30,7 @@ Suggest 2-3 alternative medicines that can substitute. Respond ONLY with valid J
 
     try:
         response = await call_gemini(prompt, model="flash")
-        cleaned = response.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("```")[1]
-            if cleaned.startswith("json"):
-                cleaned = cleaned[4:]
-        return json.loads(cleaned.strip())
+        return json.loads(clean_json_response(response))
     except Exception:
         return []
 

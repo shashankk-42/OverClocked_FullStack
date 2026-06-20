@@ -55,6 +55,8 @@ async def my_bills(
     current_user: User = Depends(require_role("patient")),
     db: AsyncSession = Depends(get_db),
 ):
+    from app.models.prescription import Prescription
+
     bills = await get_patient_pending_bills(db, current_user.linked_id)
     rows = []
     for bill in bills:
@@ -67,7 +69,15 @@ async def my_bills(
             if appt:
                 dr_result = await db.execute(select(Doctor).where(Doctor.id == appt.doctor_id))
                 doctor = dr_result.scalar_one_or_none()
-        rows.append(bill_to_dict(bill, patient, doctor))
+        elif bill.prescription_id:
+            rx_result = await db.execute(select(Prescription).where(Prescription.id == bill.prescription_id))
+            rx = rx_result.scalar_one_or_none()
+            if rx:
+                dr_result = await db.execute(select(Doctor).where(Doctor.id == rx.doctor_id))
+                doctor = dr_result.scalar_one_or_none()
+
+        row = bill_to_dict(bill, patient, doctor)
+        rows.append(row)
     return rows
 
 

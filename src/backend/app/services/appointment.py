@@ -130,6 +130,23 @@ async def get_appointments_for_doctor_today(db: AsyncSession, doctor_id: uuid.UU
     return list(result.scalars().all())
 
 
+async def get_pending_approval_appointments(
+    db: AsyncSession,
+    doctor_id: uuid.UUID | None = None,
+) -> list[Appointment]:
+    """Booked appointments from start of today UTC onward (includes future days)."""
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    query = select(Appointment).where(
+        Appointment.status == "booked",
+        Appointment.scheduled_at >= today_start,
+    )
+    if doctor_id:
+        query = query.where(Appointment.doctor_id == doctor_id)
+    query = query.order_by(Appointment.scheduled_at)
+    result = await db.execute(query)
+    return list(result.scalars().all())
+
+
 async def _next_queue_position(db: AsyncSession, doctor_id: uuid.UUID) -> int:
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + timedelta(days=1)

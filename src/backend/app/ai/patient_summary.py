@@ -1,5 +1,5 @@
 import json
-from app.ai.gemini_client import call_gemini
+from app.ai.gemini_client import call_gemini, clean_json_response
 
 
 async def generate_patient_summary(patient_data: dict) -> dict:
@@ -39,12 +39,7 @@ Generate a comprehensive clinical summary. Respond ONLY with a valid JSON object
 
     try:
         response = await call_gemini(prompt, model="pro")
-        cleaned = response.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("```")[1]
-            if cleaned.startswith("json"):
-                cleaned = cleaned[4:]
-        return json.loads(cleaned.strip())
+        return json.loads(clean_json_response(response))
     except Exception:
         return {
             "summary": "Patient summary generation failed. Please review records manually.",

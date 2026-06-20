@@ -136,7 +136,7 @@ export default function ConsultationPage() {
       if (res.data.pdf_url) {
         setSavedPdfUrl(`${getUploadsBaseUrl()}${res.data.pdf_url}`);
       }
-      toast.success('Prescription finalized and sent to patient for approval');
+      toast.success('Prescription finalized — patient will choose pharmacy pickup');
       setTimeout(() => router.push('/doctor/dashboard'), 1500);
     },
     onError: (err: any) => {

@@ -163,7 +163,8 @@ aside.fixed {
 .status-ready_for_pickup,
 .status-fulfilled,
 .status-dispensed,
-.status-paid {
+.status-paid,
+.status-declined_hospital {
   border-width: 1px;
   border-style: solid;
   border-radius: 9999px;
@@ -225,6 +226,12 @@ aside.fixed {
   background: var(--status-warning-bg);
   border-color: var(--status-warning-border);
   color: var(--status-warning-text);
+}
+
+.status-declined_hospital {
+  background: #f5f5f5;
+  border-color: var(--border);
+  color: var(--text-secondary);
 }
 
 /* ─── Animations ─────────────────────────────────── */

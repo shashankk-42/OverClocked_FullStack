@@ -154,6 +154,11 @@ class PrescriptionGenRequest(BaseModel):
     patient_id: str
 
 
+class DrugInteractionRequest(BaseModel):
+    medicines: list[str]
+    patient_id: Optional[str] = None
+
+
 class AltMedicineRequest(BaseModel):
     medicine_name: str
     diagnosis: str

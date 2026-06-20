@@ -18,6 +18,7 @@ from app.services.pharmacy import (
     dispense_prescription, mark_bill_paid, check_medicine_stock
 )
 from app.services.enhancements import notify
+from app.services.billing import send_pharmacy_payment_link_notification
 from app.schemas.schemas import PaymentRequest
 
 router = APIRouter(prefix="/pharmacy", tags=["Pharmacy"])
@@ -26,6 +27,10 @@ router = APIRouter(prefix="/pharmacy", tags=["Pharmacy"])
 class PharmacyOrderStatusRequest(BaseModel):
     status: str
     notes: str | None = None
+
+
+class PharmacyPickupChoiceRequest(BaseModel):
+    collect_from_hospital: bool
 
 
 async def _pharmacy_order_dict(db: AsyncSession, order: PharmacyOrder) -> dict:
@@ -57,6 +62,7 @@ async def _pharmacy_order_dict(db: AsyncSession, order: PharmacyOrder) -> dict:
             "total_amount": float(bill.total_amount),
             "payment_status": bill.payment_status,
             "payment_method": bill.payment_method,
+            "payment_link_sent_at": bill.payment_link_sent_at.isoformat() if bill.payment_link_sent_at else None,
             "items": bill.items or [],
         } if bill else None,
         "approved_at": order.approved_at.isoformat() if order.approved_at else None,
@@ -162,6 +168,8 @@ async def pharmacy_orders(
     query = select(PharmacyOrder)
     if current_user.role == "patient":
         query = query.where(PharmacyOrder.patient_id == current_user.linked_id)
+    elif current_user.role == "pharmacist":
+        query = query.where(PharmacyOrder.status.notin_(["patient_review", "declined_hospital"]))
     if status:
         query = query.where(PharmacyOrder.status == status)
     query = query.order_by(PharmacyOrder.created_at.desc())
@@ -170,9 +178,10 @@ async def pharmacy_orders(
     return [await _pharmacy_order_dict(db, order) for order in result.scalars().all()]
 
 
-@router.post("/orders/{order_id}/approve")
-async def approve_order(
+@router.post("/orders/{order_id}/pickup-choice")
+async def pharmacy_pickup_choice(
     order_id: str,
+    data: PharmacyPickupChoiceRequest,
     current_user: User = Depends(require_role("patient")),
     db: AsyncSession = Depends(get_db),
 ):
@@ -183,26 +192,68 @@ async def approve_order(
     if order.patient_id != current_user.linked_id:
         raise HTTPException(status_code=403, detail="Access denied")
     if order.status != "patient_review":
-        raise HTTPException(status_code=400, detail=f"Order cannot be approved from status '{order.status}'")
+        raise HTTPException(status_code=400, detail=f"Pickup choice already recorded (status: {order.status})")
 
     rx_result = await db.execute(select(Prescription).where(Prescription.id == order.prescription_id))
     prescription = rx_result.scalar_one_or_none()
-    if prescription:
-        prescription.status = "approved_for_pharmacy"
 
-    order.status = "pending"
-    order.approved_at = datetime.now(timezone.utc)
-    await notify(
-        db,
-        title="Prescription approved",
-        message="Patient approved medicines. Pharmacy can prepare the order.",
-        notification_type="pharmacy_order",
-        patient_id=order.patient_id,
-        priority="medium",
-        payload={"order_id": str(order.id), "prescription_id": str(order.prescription_id)},
-    )
+    if data.collect_from_hospital:
+        if prescription:
+            prescription.status = "approved_for_pharmacy"
+        order.status = "pending"
+        order.approved_at = datetime.now(timezone.utc)
+        await notify(
+            db,
+            title="New prescription to fulfill",
+            message="A patient chose hospital pharmacy pickup. Prepare the order when ready.",
+            notification_type="pharmacy_order",
+            role="pharmacist",
+            patient_id=order.patient_id,
+            priority="high",
+            payload={"order_id": str(order.id), "prescription_id": str(order.prescription_id)},
+        )
+        await notify(
+            db,
+            title="Pharmacy pickup confirmed",
+            message="Your prescription was sent to the hospital pharmacy for preparation.",
+            notification_type="prescription",
+            patient_id=order.patient_id,
+            priority="medium",
+            payload={"order_id": str(order.id)},
+        )
+        message = "Prescription sent to hospital pharmacy"
+    else:
+        order.status = "declined_hospital"
+        if prescription:
+            prescription.status = "external_pickup"
+        await notify(
+            db,
+            title="External pickup noted",
+            message="You chose not to collect from the hospital pharmacy. Use your prescription externally.",
+            notification_type="prescription",
+            patient_id=order.patient_id,
+            priority="normal",
+            payload={"order_id": str(order.id)},
+        )
+        message = "You can collect medicines from an external pharmacy"
+
     await db.flush()
-    return await _pharmacy_order_dict(db, order)
+    return {"order": await _pharmacy_order_dict(db, order), "message": message}
+
+
+@router.post("/orders/{order_id}/approve")
+async def approve_order(
+    order_id: str,
+    current_user: User = Depends(require_role("patient")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Legacy alias — confirms hospital pharmacy pickup."""
+    return await pharmacy_pickup_choice(
+        order_id,
+        PharmacyPickupChoiceRequest(collect_from_hospital=True),
+        current_user,
+        db,
+    )
 
 
 @router.patch("/orders/{order_id}/status")
@@ -228,7 +279,6 @@ async def update_order_status(
         "ready_for_pickup": {"paid"},
         "paid": {"fulfilled"},
         "fulfilled": set(),
-        "patient_review": {"pending"},
     }
     if data.status not in transitions:
         raise HTTPException(status_code=400, detail="Invalid pharmacy order status")
@@ -246,11 +296,11 @@ async def update_order_status(
         order.ready_at = now
         await notify(
             db,
-            title="Medicines ready for pickup",
-            message=f"Your pharmacy order is ready. Please pay Rs {float(bill.total_amount):.2f}.",
+            title="Medicines packed",
+            message="Your pharmacy order is packed and ready. Payment link will be sent shortly.",
             notification_type="pharmacy_order",
             patient_id=order.patient_id,
-            priority="high",
+            priority="medium",
             payload={"order_id": str(order.id), "bill_id": str(bill.id)},
         )
     elif data.status == "fulfilled":
@@ -272,6 +322,40 @@ async def update_order_status(
         order.notes = data.notes
     await db.flush()
     return await _pharmacy_order_dict(db, order)
+
+
+@router.post("/orders/{order_id}/send-payment-link")
+async def send_pharmacy_payment_link(
+    order_id: str,
+    current_user: User = Depends(require_role("pharmacist", "admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(PharmacyOrder).where(PharmacyOrder.id == uuid.UUID(order_id)))
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pharmacy order not found")
+    if order.status != "ready_for_pickup":
+        raise HTTPException(status_code=400, detail="Order must be packed (ready for pickup) before sending payment link")
+    if not order.bill_id:
+        raise HTTPException(status_code=400, detail="No bill found — mark order as packed first")
+
+    bill_result = await db.execute(select(Bill).where(Bill.id == order.bill_id))
+    bill = bill_result.scalar_one_or_none()
+    if not bill:
+        raise HTTPException(status_code=404, detail="Bill not found")
+    if bill.payment_status == "paid":
+        raise HTTPException(status_code=400, detail="Bill is already paid")
+
+    await send_pharmacy_payment_link_notification(db, bill, order.id)
+    await db.flush()
+
+    return {
+        "message": "Payment link sent to patient",
+        "bill_id": str(bill.id),
+        "payment_url": f"/patient/billing?bill={bill.id}",
+        "amount": float(bill.total_amount),
+        "order": await _pharmacy_order_dict(db, order),
+    }
 
 
 @router.post("/dispense/{prescription_id}")

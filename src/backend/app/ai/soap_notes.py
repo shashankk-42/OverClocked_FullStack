@@ -1,5 +1,5 @@
 import json
-from app.ai.gemini_client import call_gemini
+from app.ai.gemini_client import call_gemini, clean_json_response
 
 
 async def generate_soap_notes(transcript: str, patient_context: dict) -> dict:
@@ -35,12 +35,7 @@ Generate a structured SOAP note. Respond ONLY with valid JSON:
 
     try:
         response = await call_gemini(prompt, model="pro")
-        cleaned = response.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("```")[1]
-            if cleaned.startswith("json"):
-                cleaned = cleaned[4:]
-        return json.loads(cleaned.strip())
+        return json.loads(clean_json_response(response))
     except Exception:
         return {
             "subjective": transcript,

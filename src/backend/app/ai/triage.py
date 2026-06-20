@@ -1,5 +1,5 @@
 import json
-from app.ai.gemini_client import call_gemini
+from app.ai.gemini_client import call_gemini, clean_json_response
 
 
 async def triage_symptoms(symptoms: str) -> dict:
@@ -28,13 +28,7 @@ Priority guide:
 
     try:
         response = await call_gemini(prompt, model="flash")
-        # Clean up response - remove markdown if present
-        cleaned = response.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("```")[1]
-            if cleaned.startswith("json"):
-                cleaned = cleaned[4:]
-        return json.loads(cleaned.strip())
+        return json.loads(clean_json_response(response))
     except (json.JSONDecodeError, Exception):
         return {
             "department": "General Medicine",
