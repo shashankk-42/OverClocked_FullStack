@@ -1,117 +1,214 @@
-# Gotchas
+# MediFlow AI — Gotchas & Guardrails
 
-## Docker Deployment
+> Things that will bite you if ignored. Read before making changes.
 
-- After `docker compose up -d`, you must run `docker compose exec api python setup_db.py` and `docker compose exec api python seed_data.py` before workers will function correctly; workers will crash-loop with `relation does not exist` errors until schema is created.
-- Backend Docker images are still large due to Playwright chromium, spaCy models, and sentence-transformers dependencies, but PyTorch must be installed from the CPU wheel index before `requirements.txt`; otherwise Linux pip can pull CUDA/NVIDIA wheels through `sentence-transformers` and inflate the dependency layer by several GB.
-- The `model_cache` volume is shared between `embedding_worker` and `summary_worker` to avoid duplicate Hugging Face model downloads.
-- When restarting with `docker compose down` followed by `docker compose up -d`, orphan container conflicts may occur; use `docker compose down --remove-orphans` to clean up.
-- Docker Compose environment variables (`DATABASE_URL`, `REDIS_URL`) override `.env` file values with container hostnames (`postgres`, `redis`) for inter-container networking.
-- The `pgdata` volume persists PostgreSQL data across restarts; use `docker compose down -v` to reset the database completely.
-- `docker-compose.local.yml` removes Redis's host port publish so this stack can run while another local project already owns `localhost:6379`; use it with `docker compose -f docker-compose.yml -f docker-compose.local.yml ...`.
-- Base `docker-compose.yml` intentionally stays CPU-safe for cross-machine compatibility. On NVIDIA + Docker Desktop + WSL2 machines, use `docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d` to give only the `ollama` service `gpus: all`. Teammates without a GPU should continue using the base Compose file alone.
-- The backend Dockerfile intentionally preinstalls CPU-only `torch` with `--index-url https://download.pytorch.org/whl/cpu`; do not remove this unless the backend itself is deliberately moved to a GPU runtime image.
+---
 
-## General
+## 🔴 Critical — Will Break Production
 
-- Context maintenance is mandatory: after any implementation change, update relevant `.AI/context/` files plus `.AI/tasks/active/TASK.md` in the same change. Do not defer context sync as follow-up work.
-- AI-assisted code is not production-safe by default. For every new or changed feature, include explicit safety checklist coverage (abuse paths, auth/authz, validation, rate limiting, data handling/redaction, rollback) and evidence-backed safety verification.
-- A8 enforcement is now wired through `.github/PULL_REQUEST_TEMPLATE.md` and `.github/workflows/safety-gate.yml`. PRs without checked safety items fail `scripts/verify_safety_gate.py` in CI.
-- Commit subjects now follow `type(scope): summary` per `AGENT.md`. One-word or vague subjects (`update`, `misc changes`) reduce auditability against `.AI/tasks` and should be treated as invalid repo practice.
-- `MIN_INDEPENDENT_SOURCES` in `summary_worker.py` is now set to the production value `3`. Keep this threshold unless there is an explicit policy change; lowering it increases publish yield but weakens multi-source consensus requirements.
-- Schema rollout is now live locally; keep `src/backend/setup_db.py` as the single source of truth and rerun it after schema-affecting code changes.
-- `app/__init__.py` now auto-loads repo `.env` via `app.env`. Any worker or CLI that imports `app.*` will pick up local env vars without going through `app.main`.
-- `fetch_worker.py` writes normalization fields that now exist in the bootstrap schema; keep worker code and schema in sync whenever normalization fields change.
-- `event_clusterer.py` still idles safely if clustering tables or `articles.embedding` are missing; that guard is intentional.
-- In `event_clusterer.py`, `_load_table_columns` is a module-level function, not an instance method. A prior bug called it as `self._load_table_columns(...)` and failed at runtime. Keep calls as `_load_table_columns(...)`.
-- Vector dimension is now fixed to `768` for the MVP, matching `all-mpnet-base-v2`. Do not change it without a migration plan.
-- Task 5 HNSW work should target `articles.embedding` and `events.centroid`. Do not mix those 768-d clustering vectors with Task 3's separate sentence-level summary embedding cache when adding ANN indexes.
-- `setup_db.py` must be rerun after Task 5 code changes to create `events_centroid_hnsw_cos_idx` and `articles_embedding_hnsw_cos_idx` in the live database.
-- `setup_db.py` must keep base `articles` columns in `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` form as well as the initial `CREATE TABLE`; old persisted volumes may predate `title` and `content`, and fetch_worker inserts will fail without those repair clauses.
-- `setup_db.py` must now also be rerun after the March 31, 2026 A6 pass to create `fetch_dead_letters`, `worker_heartbeats`, and `ingestion_metrics_hourly` in the live database.
-- `setup_db.py` must now also be rerun after the April 14, 2026 B4 pass to create `story_feedback` before using feedback queue endpoints.
-- `setup_db.py` must now also be rerun after the May 7, 2026 Task 8 Phase 0.1 pass to add `articles.encryption_key_id VARCHAR(16)` (rotation tracking).
-- Encryption is centralized in `src/backend/app/auth/encryption.py`. Production must set `ENCRYPTION_KEY` (Fernet key); during rotation set `ENCRYPTION_KEY_PREVIOUS` to the old key so legacy rows decrypt. Ephemeral keys only via `ALLOW_EPHEMERAL_ENCRYPTION_KEY=true` or `ENV=test`.
-- The test suite pins `ENV=test` via `tests/conftest.py` so the encryption service permits ephemeral keys regardless of test order. Tests that need to verify production-mode encryption behavior must explicitly override `ENV` inside the test body.
-- `setup_db.py` must now also be rerun after the May 7, 2026 Task 8 Phase 0.2 pass to create `event_cohesion_history` and `event_split_log` tables.
-- Cluster split logic lives in `app/clustering/cohesion.py` as pure functions. Runtime wiring into `event_clusterer.py` is the remaining follow-up — until that lands the tables exist but stay empty.
-- `setup_db.py` must now also be rerun after the May 7, 2026 Task 8 Phase 0.3 pass to add `articles.under_legal_hold`, `articles.purged_at`, and the `article_purge_log` table.
-- Retention purge runs once per `python -m workers.retention_purge_worker` invocation (designed for cron / k8s CronJob, not a long-running worker). Purge strips `raw_html_encrypted`, `encryption_key_id`, `content`, and `lead` while preserving the shell row (id, url, outlet_id, published_at, title) for citation integrity.
-- `setup_db.py` must now also be rerun after the May 7, 2026 Task 8 Phase 0.4 pass to add `outlets.tier` (default `'standard'`).
-- Versioning triggers are now a union of three rules (article growth >= 5, elapsed >= 6h, OR high-impact outlet addition). High-impact means `outlets.tier='high_impact'` OR explicit `HIGH_IMPACT_OUTLET_IDS` env override. Outlet seeding should set tier to `'high_impact'` for The Hindu, Indian Express, Reuters, PTI; everything else defaults to `'standard'`.
-- Captcha verification is centralised in `app/content/captcha.py`. Production must set `HCAPTCHA_SECRET`. Without it, the dev length fallback applies — do not run public traffic without the secret set. `ENV=test` continues to accept `test-captcha-*` tokens so the test suite stays offline.
-- Reputation decay (`app/content/reputation_decay.py`) is invoked by the retention purge worker each run. Default half-life is 30 days, override with `FEEDBACK_REPUTATION_HALF_LIFE_DAYS`. Decay is keyed off a single `feedback:reputation:last_decay_at` Redis key; missing the marker on first run is a no-op and only sets the marker.
-- `setup_db.py` must now also be rerun after the April 3, 2026 A4 pass to create `event_versions` and apply the updated `summary_evidence_sentences.source_field` check (includes `'headline'`).
-- Version snapshots are not persisted on every summary rerun: A4 only creates a new `event_versions` row when article growth reaches `+5` or elapsed time reaches `>=6h` since the previous version.
-- Those two HNSW indexes now exist in the live local database after the March 19, 2026 verification pass; rerun `setup_db.py` again if either the vector columns or index DDL change.
-- `EventClustererConfig` now defaults `CLUSTERING_USE_ANN=true`; if the event HNSW index is missing, the worker logs a warning and falls back to exact retrieval instead of silently pretending ANN is active.
-- Task 5 exact validation intentionally disables index scans for the candidate query, while ANN mode sets `hnsw.ef_search` and biases the planner away from sequential scan. Do not remove those session-level query settings without replacing the exact-vs-ANN control path.
-- Benchmark exact vs ANN retrieval with `python -m app.clustering.benchmark --output .AI/reports/task5-ann-benchmark.json` once PostgreSQL is up and the clustering corpus has embeddings.
-- Canonical worker startup from repo root is `python -m workers.<worker_name>` after `python -m pip install -e .`.
-- `sentence-transformers` is installed in the local venv, but the first real embedding run will download the model weights if they are not already cached.
-- RSS polling now treats HTTP failures and bozo-without-entries parses as unsuccessful polls. ANI currently returns `HTTP 403`, so it will not enqueue articles or advance as a healthy poll.
-- `app.rss.poller` now retries `403` responses once with a browser-style fallback user-agent. Keep this behavior when tuning feed reliability; several outlets are sensitive to bot-style user-agents.
-- Primary RSS user-agent can be overridden with `RSS_PRIMARY_USER_AGENT`; if unset, the code uses the project bot UA and only falls back on `403`.
-- March 31, 2026 host checks in this workspace showed Firstpost returning `403` to the bot UA but `200 application/xml` with the fallback browser UA; treat that as expected behavior under the new retry path.
-- `seed_data.py` now seeds Scroll from `https://feeds.feedburner.com/ScrollinArticles.rss` and deletes stale `https://scroll.in/feed` rows during reseed. Rerun `python seed_data.py` (or container equivalent) before evaluating feed-health improvements for Scroll.
-- `seed_data.py` now also seeds Business Standard and Financial Express from Google News RSS search endpoints and deletes stale `https://www.business-standard.com/rss/home_page_top_stories.rss` plus `https://www.financialexpress.com/feed/` rows during reseed. Run `python seed_data.py` before comparing feed-health output across branches.
-- `seed_data.py` now also seeds The Wire, The Print, and Firstpost from Google News RSS search endpoints and deletes stale `https://thewire.in/feed`, `https://theprint.in/feed`, `https://www.firstpost.com/rss/india.xml`, and `https://www.firstpost.com/commonfeeds/v1/mfp/rss/india.xml` rows during reseed.
-- If Docker CLI returns `failed to connect to the docker API ... dockerDesktopLinuxEngine`, Docker Desktop daemon is not running; start Docker Desktop before running compose-based verification commands.
-- This Compose stack does not bind-mount local source into the `api` container. `docker compose exec api ...` runs whatever code is baked into the image; rebuild (`docker compose up -d --build api`) after local code changes or run repo-venv commands against host-mapped Postgres/Redis.
-- Task 6 feed-health observability now records every RSS poll attempt into `feed_poll_history` and updates `outlet_feeds` last-success/last-failure metadata. Failed polls still advance `last_polled`, so a bad feed no longer gets hammered every minute just because the last attempt failed.
-- `python -m app.calibration.cli backfill-feeds` now also writes feed-health records; `python -m app.calibration.cli feed-health --history-limit N [--failing-only]` reads the same durable state.
-- `GET /api/ops/feed-health` is auth-protected and returns `401 UNAUTHORIZED` without a bearer token; use an access token or FastAPI dependency overrides in tests.
-- Host shells in this environment currently export `HTTP_PROXY`, `HTTPS_PROXY`, and `ALL_PROXY` to `http://127.0.0.1:9`. Backend outbound HTTP now ignores env proxies by default via `HTTP_TRUST_ENV=false`; only set `HTTP_TRUST_ENV=true` when you actually intend to route through proxy env vars.
-- The March 24, 2026 repo-venv blanket `transport_error` / `WinError 10061` failure was caused by that dead host proxy env, not by Docker networking or a broken RSS implementation.
-- `RobotsChecker` no longer relies on `urllib.robotparser.read()`. It now uses HTTPX, follows redirects, tries both bare and `www.` hostnames, and allows fetches when robots transport fails to avoid false negative blocks like the earlier The Hindu issue.
-- `fetch_worker.py` now parses both ISO-style and RFC822-style feed timestamps into `rss_published_at`; do not regress back to `datetime.fromisoformat(...)` only.
-- `fetch_worker.py` now dead-letters terminal failures (after retry exhaustion) into `fetch_dead_letters`; avoid reintroducing silent drops on exhausted retries.
-- `python -m app.calibration.cli replay-dead-letters --limit N` replays only rows where `replayed_at IS NULL` and marks successful replays as replayed; reruns are intentionally idempotent at the dead-letter row level.
-- Worker heartbeat counters now accumulate in `worker_heartbeats` from all long-running workers (`rss_worker`, `fetch_worker`, `embedding_worker`, `event_clusterer`, `signal_worker`, `summary_worker`); they are cumulative deltas, not per-interval resets.
-- `GET /api/ops/worker-health` and `GET /api/ops/ingestion-stats` are auth-protected ops routes, matching the existing `GET /api/ops/feed-health` authentication behavior.
-- `GET /api/ops/metrics` is intentionally unauthenticated for Prometheus scraping; keep this path on trusted network boundaries in production.
-- Monitoring services were added to `docker-compose.yml` (`prometheus`, `grafana`). If containers fail to start, confirm monitoring config mounts under `monitoring/` were not moved.
-- Trust/safety endpoints (`/api/ops/suppress/{event_id}`, `/api/ops/restore/{event_id}`, `/api/ops/suppression-queue`, `/api/ops/takedown`, `/api/ops/takedown/{request_id}/purge`) are admin-only and require `AUTH_ADMIN_EMAILS` to include the caller email; if that env var is unset or missing the user email, admin calls will be rejected.
-- Feedback moderation endpoints (`/api/ops/feedback-queue`, `/api/ops/feedback-queue/{feedback_id}/review`) are admin-only and share the same `AUTH_ADMIN_EMAILS` gate.
-- Public content queries now hide events with active `event_suppression` rows. During suppression windows, story and intelligence reads for the affected event-backed slug resolve as not found until restore occurs.
-- Takedown purge flow clears `articles.raw_html_encrypted` for the targeted article and records purge metadata on the takedown request; this is intentionally irreversible at the raw HTML field level.
-- Paywall detection is heuristic (`detect_paywall_indicators` + `estimate_extraction_confidence` in `app.fetch.normalizer`), so outlet-specific false positives/false negatives are still possible and should be monitored with real feed samples.
-- Signal scoring now skips rows where `articles.extraction_confidence < 0.70`; low-confidence articles will not contribute to Task 2 baselines even if clustered.
-- Paywalled summary evidence now uses headline-only extraction and appears as `Outlet (Paywalled)` in Task 3 evidence cards; do not re-enable paywalled body sentence extraction without a policy decision.
-- Datetime gotcha: PostgreSQL `TIMESTAMP` commonly yields naive datetimes, while `NOW()` in mixed paths can produce timezone-aware values. Naive-aware comparisons will crash. Normalize all datetimes to UTC-aware values in `_coerce_datetime` and at comparison boundaries (including matcher logic).
-- Rule: always use timezone-aware datetimes everywhere. Never mix naive and aware values. Use `datetime.now(timezone.utc)` and avoid `datetime.utcnow()` because it returns naive datetimes.
-- `fetch_worker.py` requires spaCy model `en_core_web_sm`; install it in the venv (`python -m spacy download en_core_web_sm`) before first full run.
-- Postgres currently emits a collation version mismatch warning in this local environment; runtime continues, but treat it as an ops cleanup item.
-- Do not build signals, syndication, or summaries until events are being populated from real embeddings in Postgres.
-- `signal_worker.py` uses lazy import for `Task2Repository` to avoid psycopg2 import at module level; this allows tests to inject in-memory repositories. Do not move the import back to module level.
-- Near-duplicate threshold is `0.92` cosine similarity in `duplicate_detector.py`. Lowering it risks false positives; raising it risks missing wire copies with minor edits.
-- Wire detector patterns match agency abbreviations (PTI, ANI, AP, AFP, IANS) and full names (Press Trust of India, Reuters). Adding new agencies requires updating `_WIRE_PATTERNS` in `wire_detector.py`.
-- `article_signals` has a UNIQUE constraint on `(article_id, signal_name)`. The worker uses ON CONFLICT upsert, so reruns are idempotent.
-- Baselines exclude articles where `is_duplicate = TRUE`. If duplicate detection changes, baselines will shift on next recomputation.
-- `setup_db.py` must be rerun after Task 2 schema additions to create `article_duplicates`, `article_signals`, `cluster_baselines`, and `outlet_baselines` tables.
-- API endpoints in `main.py` now import `Task2Repository` at module level, which requires psycopg2; the API server needs the full venv with psycopg2 installed.
-- `setup_db.py` must be rerun after Task 3 schema additions to create `event_summaries`, `summary_sections`, `summary_evidence_sentences`, `sentence_embeddings`, `sentence_semantic_groups`, `sentence_group_members`, `summary_claim_reviews`, and `section_evidence_links` tables.
-- `setup_db.py` must be rerun after Task 4 schema additions to create `calibration_runs`, `calibration_signal_stats`, `summary_quality_reviews`, `article_frame_labels`, and `articles.content_digest`.
-- `summary_worker.py` requires Task 2 signals to be available before processing events; it checks for signal existence and skips events without signals.
-- LLM rendering in `llm_writer.py` requires a running Ollama instance at `SUMMARY_LLM_BASE_URL` (default: `http://localhost:11434`). If unavailable, use `SUMMARY_USE_LLM=false` for fallback mode.
-- Default local summary model is now `gemma4:e4b` (`OLLAMA_MODEL=gemma4:e4b`, `SUMMARY_LLM_MODEL` fallback `gemma4:e4b`); pull it first with `ollama pull gemma4:e4b` (or Docker equivalent) before expecting LLM rendering to succeed.
-- Sentence embedding dimension is fixed to 384 for `sentence-transformers/all-MiniLM-L6-v2`. Changing the model requires updating `sentence_embeddings.embedding_vector` dimension in schema.
-- The bare model id `all-MiniLM-L6-v2` caused degraded summary-model loading behavior in this repo. Keep the full Hugging Face id in `SentenceEmbedder.DEFAULT_MODEL`.
-- Semantic grouping uses `0.75` similarity threshold and `0.3` lexical overlap minimum. Raising similarity threshold reduces false groupings; lowering lexical overlap allows more diverse matches.
-- Current summary publish policy requires the `facts` section to exist. With only two unique outlets in an event, the maximum weighted support is 2.0, so such events can legitimately remain `withheld` even when `only_some` groups and evidence links are present.
-- `content_stories.is_active` is again the sole public-visibility gate for content endpoints. Do not reintroduce query-time checks against the latest `event_summaries.status` unless the product rule changes again.
-- `content_stories.latest_summary_status` is a governance field, not a display gate. Sync updates it when the newest summary is `withheld` while preserving already-published public rows.
-- Parent-group cap in `source_weighting.py` defaults to `1.0`. Outlets under the same `parent_group_id` contribute at most 1.0 combined weighted support.
-- Risk filter marks allegations without attribution as high-risk and non-publishable. Allegations with proper attribution (e.g., "according to police") are medium-risk and publishable.
-- Sensitive-event policy detects communal, caste, terrorism, and violence keywords. High-sensitivity events withhold the Claims section entirely.
-- Summary generator uses content hashing for idempotent UPSERT. Reruns with identical input produce identical output without row duplication.
-- API endpoints return parsed JSON for `content_json` and `withheld_reasons` fields; no manual JSON parsing needed on client side.
-- RSS dedupe is now based on canonicalized URLs, not raw feed links. If you adjust canonicalization rules in `app/rss/url_utils.py`, Redis dedupe behavior will shift immediately.
-- `fetch_worker.py` now suppresses newly inserted rows when `content_digest` matches an existing article. This avoids article-count inflation, but it does not currently create a separate linkage table for content-level duplicate audit.
-- Task 4 CLI lives at `python -m app.calibration.cli`; it requires the Task 4 schema to exist before report/review commands will work.
-- `python -m app.calibration.cli publish-yield-report [--days N --top-reasons M]` is now the canonical conversion telemetry command for processed/published/withheld counts, top withheld reasons, and daily publish-rate trend.
-- Withheld reason distribution can include a dominant `unspecified` bucket for older or sparse summary rows where `withheld_reasons` was empty/null; treat this as a data-quality signal rather than proof that no policy reason applied.
-- `tests.test_summary_engine` now passes in the repo venv after the March 23, 2026 title-evidence cleanup fix.
-- Task 5 live ANN artifact now exists at `.AI/reports/task5-ann-benchmark.json` (April 3, 2026); rerun benchmark and review parity/latency whenever corpus size or ANN tuning/index settings materially change.
-- For `content_stories` upsert-by-event flows, `ON CONFLICT (event_id)` requires a non-partial unique index/constraint on `event_id`. A partial unique index (for example `WHERE event_id IS NOT NULL`) is not accepted as a generic conflict target and will fail with `no unique or exclusion constraint matching the ON CONFLICT specification`.
-- In sparse-event scenarios, Task 3 may publish a summary that lacks a `facts` section row. Content sync must not hard-fail to placeholder text in this case; use fallback order: facts statement -> LLM facts prose -> first available section statement.
+### 1. Gemini API — No-Storage Mode is Mandatory
+
+When calling Gemini with patient data, always use the `safety_settings` and ensure the API is configured to **not store** request/response data. Patient medical records must never be retained by the Gemini API.
+
+```python
+# ✅ Correct
+generation_config = GenerationConfig(
+    # ... your config
+)
+# Set up the client with appropriate data handling
+
+# ❌ Wrong — default config may store data
+model.generate_content(patient_data)
+```
+
+### 2. PID Must Be Globally Unique
+
+The Patient ID (PID) is the **universal join key** across the entire system. Collision = catastrophic data merge.
+
+- Use a format like `MF-{YYYYMMDD}-{6-char-alphanumeric}` (e.g., `MF-20260620-A7X3K9`)
+- Always check for uniqueness before committing
+- Never allow PID reassignment or recycling
+
+### 3. Prescription medicines Column is JSONB — Not a Relation
+
+`prescriptions.medicines` stores an array of medicine objects as JSONB, not as a foreign key to the pharmacy table. This is intentional for historical integrity (medicine names/dosages must be frozen at prescription time).
+
+```json
+[
+  {"name": "Metformin", "dosage": "500mg", "frequency": "twice daily", "duration": "30 days"},
+  {"name": "Amlodipine", "dosage": "5mg", "frequency": "once daily", "duration": "30 days"}
+]
+```
+
+**Gotcha:** Don't try to join prescriptions → pharmacy by medicine name. Compare by normalized name for inventory checks only.
+
+### 4. Clerk Webhook Signature Verification
+
+Always verify the `svix-signature` header on Clerk webhooks. Skipping this opens the system to spoofed user creation events.
+
+```python
+# ✅ Always verify
+from svix.webhooks import Webhook
+wh = Webhook(CLERK_WEBHOOK_SECRET)
+payload = wh.verify(body, headers)
+```
+
+---
+
+## 🟡 Warning — Will Cause Subtle Bugs
+
+### 5. Timezone Handling — Always Use UTC Internally
+
+All database timestamps must be stored in **UTC**. Convert to local timezone only at the frontend display layer.
+
+```python
+# ✅ Backend — always UTC
+from datetime import datetime, timezone
+created_at = datetime.now(timezone.utc)
+
+# ✅ Frontend — convert for display
+new Date(utcTimestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+```
+
+**Why:** Appointment scheduling across timezones will silently produce wrong slots if you store local time.
+
+### 6. Appointment Conflict Detection Must Be Atomic
+
+When booking an appointment, the check-for-conflict + insert must happen in a **single transaction** with row-level locking. Otherwise, two concurrent bookings can claim the same slot.
+
+```python
+# ✅ Use SELECT ... FOR UPDATE
+async with session.begin():
+    existing = await session.execute(
+        select(Appointment)
+        .where(Appointment.doctor_id == doctor_id)
+        .where(Appointment.slot == requested_slot)
+        .with_for_update()
+    )
+    if existing.scalar():
+        raise ConflictError("Slot already booked")
+    session.add(new_appointment)
+```
+
+### 7. Drug Interaction Checker — Must Run BEFORE Prescription Save
+
+The AI drug interaction check must execute **before** the prescription is committed, not after. If you check post-save, the patient may already be dispensed conflicting medicines.
+
+### 8. Razorpay Payment Verification — Always Server-Side
+
+Never trust the client-side payment success callback alone. Always verify the payment signature server-side via the Razorpay webhook or verification API.
+
+```python
+# ✅ Server-side verification
+razorpay_client.utility.verify_payment_signature({
+    'razorpay_order_id': order_id,
+    'razorpay_payment_id': payment_id,
+    'razorpay_signature': signature
+})
+```
+
+---
+
+## 🟢 Tips — Will Save You Time
+
+### 9. ShadCN Components — Don't Install All at Once
+
+ShadCN components are added individually via CLI. Only add what you need:
+
+```bash
+npx shadcn-ui@latest add button card dialog table
+```
+
+**Why:** Each component pulls in its Radix primitive. Installing all creates unnecessary bundle bloat.
+
+### 10. FastAPI Dependency Injection for Auth
+
+Use FastAPI's `Depends()` for auth guards, not decorators. This keeps the auth logic testable and composable:
+
+```python
+# ✅ Dependency injection
+@router.get("/patients/{pid}")
+async def get_patient(
+    pid: str,
+    current_user: User = Depends(require_role("doctor", "admin"))
+):
+    ...
+```
+
+### 11. Next.js App Router — Server vs Client Components
+
+- **Server Components** (default): For data fetching, SEO, and rendering static content.
+- **Client Components** (`"use client"`): For interactivity — forms, modals, real-time updates.
+- **Gotcha:** Don't put `"use client"` on layout files unless every child needs interactivity.
+
+### 12. SQLAlchemy 2.x Async — Session Lifecycle
+
+Always use `async with` for session management. Forgetting to close sessions will exhaust the connection pool.
+
+```python
+# ✅ Correct
+async with async_session() as session:
+    result = await session.execute(query)
+
+# ❌ Wrong — session leak
+session = async_session()
+result = await session.execute(query)
+# forgot to close!
+```
+
+### 13. Supabase File Paths — Use PID Prefix
+
+Organize uploads by patient PID for easy retrieval and cleanup:
+
+```
+reports/{pid}/{report_id}.pdf
+```
+
+**Never** store files in a flat namespace — you'll lose track fast.
+
+### 14. Queue Management — Optimistic UI
+
+The reception queue board should use **optimistic updates** on the frontend (update UI immediately, rollback on error) to feel responsive. Don't wait for the server round-trip to show queue position changes.
+
+---
+
+## 🔵 Convention — Team Agreements
+
+### 15. API Route Naming
+
+All API routes follow RESTful conventions with plural nouns:
+
+```
+GET    /api/v1/patients/{pid}
+POST   /api/v1/appointments
+PATCH  /api/v1/prescriptions/{id}
+DELETE /api/v1/reports/{id}
+```
+
+### 16. Error Response Format
+
+All API errors return a consistent shape:
+
+```json
+{
+  "detail": "Human-readable message",
+  "code": "MACHINE_READABLE_CODE",
+  "field": "optional_field_name"
+}
+```
+
+### 17. Commit Message Convention
+
+```
+feat(patient): add PID generation with QR code
+fix(pharmacy): correct stock decrement on dispense
+docs(ai): add triage prompt engineering notes
+```
+
+### 18. Branch Naming
+
+```
+feat/patient-registration
+fix/appointment-conflict
+refactor/ai-module-extraction
+```
