@@ -1,0 +1,364 @@
+welcome to razapi
+0:02
+raza pay is the easiest way to accept
+0:05
+and process digital payments in india
+0:08
+in this video we will learn to integrate
+0:10
+the razerby payment gateway with your js
+0:13
+based custom website
+0:15
+before we begin we must complete a few
+0:17
+steps
+0:25
+visit razerby.com and sign up for an
+0:27
+account provide the relevant details and
+0:30
+complete the registration process
+0:40
+generate the api keys on the recipe
+0:43
+dashboard navigate to settings api keys
+0:46
+and generate the keys
+0:49
+save the api keys on your system
+0:54
+open the recipe web standard integration
+0:57
+document
+0:59
+integration steps
+1:00
+you must complete these integration
+1:02
+steps
+1:03
+create an order from your server
+Integration Steps
+1:06
+pass order id and other options to
+1:09
+checkout
+1:10
+handle payment success and failure
+1:12
+events
+1:14
+store fields in server
+1:16
+perform signature verification
+1:19
+step 1 create an order from your server
+1:23
+order is an important step in the
+Step 1 - Create an order on your server
+1:25
+payment process orders and payments go
+1:28
+hand in hand
+1:30
+for every payment an order needs to be
+1:32
+created
+1:33
+it is compulsory to create orders to
+1:36
+capture payments automatically
+1:38
+you can create an order using the orders
+1:41
+api it is a server to serve a call that
+1:43
+is secured by basic auth using your api
+1:47
+keys
+1:48
+pass the order id received in the
+1:50
+order's api response to checkout this
+1:53
+ties the order with the payment and
+1:55
+secures the prequest from being tampered
+1:58
+in this video we will use postman to
+2:01
+file the orders api and create an order
+2:06
+navigate to the order sample code in the
+2:08
+document
+2:10
+copy the code and url and open postman
+2:30
+select the post method and enter the api
+2:32
+url
+2:34
+select basic as the authorization type
+2:37
+enter the api key id and secret
+2:40
+generated on the recipe dashboard
+2:42
+select body raw json
+2:45
+paste the request parameters
+2:48
+you can modify the request parameter as
+2:51
+needed
+2:55
+click send to fire the api and create an
+2:58
+order copy the order id from the
+3:00
+response
+3:05
+step 2 pass order id to checkout
+Step 2 - Pass Order ID to Checkout
+3:10
+there are two types of checkout code
+3:11
+with handler function and callback url
+3:15
+in case of handler function on
+3:17
+successful payment the customer will be
+3:20
+shown your web page on payment failure
+3:23
+the customer will be notified on the
+3:25
+reason of failure and asked to retry the
+3:28
+payment
+3:29
+in case of callback url on successful
+3:32
+payment the customer will be redirected
+3:35
+to a specified url for example a payment
+3:38
+success page on payment failure the
+3:40
+customer will be asked to retry payment
+3:43
+on checkout
+3:46
+in this video we will follow the handler
+3:48
+method
+3:49
+in the document copy the sample code for
+3:52
+handler function
+3:57
+open the code editor and create an html
+4:00
+file
+4:01
+this is a mock web page where the pay
+4:03
+button will appear
+4:05
+customers will click on the pay button
+4:07
+to open checkout and make a payment
+4:10
+once the payment is successful the
+4:12
+payment id order id and payment
+4:15
+signature will appear as notifications
+4:17
+on the page
+4:19
+in this video we have created a simple
+4:21
+web page called checkout.html
+4:24
+this is a page in which we will paste
+4:27
+the checkout code
+4:28
+open checkout.html
+4:30
+and paste the code
+4:32
+change the checkout parameters
+4:35
+replace your key id with the test api
+4:38
+key id we had generated on the dashboard
+4:46
+change the amount to match the order
+4:48
+amount
+4:50
+replace the order id with the id
+4:52
+generated in the api response
+4:58
+save your changes
+4:59
+open the checkout.html
+5:02
+on the browser
+5:06
+the webpage displays the pay button
+5:09
+click this button to open checkout we
+5:11
+have successfully added checkout to the
+5:13
+web page
+5:17
+step 3
+5:18
+handle payment and failure even
+Step 3 - Handle payment success and failure
+5:21
+since we are using the handler function
+5:23
+checkout code on payment success the
+5:26
+payment id order id and signature will
+5:28
+appear as notifications on the web page
+5:31
+you can store these on the server
+5:34
+in case of payment failure the customer
+5:36
+is notified of the reason for failure
+5:39
+and asked to retry the payment
+5:42
+step 4 store fields in server
+5:46
+the payment id order id and signature
+Step 4 - Store fields in server
+5:49
+fields appear on the checkout response
+5:52
+you must store these pins on the server
+5:55
+verify payment signature to verify the
+5:58
+reason signature returned to you by the
+Step 5 - Verify payment signature
+6:01
+checkout form create a signature on your
+6:04
+server using the order id raise of the
+6:06
+payment id and key secret
+6:10
+use the sha256
+6:12
+algorithm the raise up a payment id and
+6:15
+the order id to construct a hmac hex
+6:19
+digest
+6:20
+if the signature you generate on your
+6:22
+server matches the razor signature
+6:24
+returned to you by the checkout form the
+6:27
+payment received is from an authentic
+6:29
+source
+6:30
+read the document to know more about
+6:32
+signature verification in this video we
+6:34
+are not showing the storage of payment
+6:36
+details and verification of signature
+6:38
+steps as these are to be performed on
+6:41
+your server end
+6:42
+you can refer to the document to learn
+6:44
+how to implement these steps on your
+6:46
+server side this completes the
+6:48
+integration
+6:50
+let us test the integration by making a
+6:52
+test payment
+6:53
+open the checkout.html on the browser
+6:56
+the web page displays the pay button
+Make a Test Transaction
+6:59
+click this button to open
+7:01
+checkout select a payment method for
+7:03
+example netbanking and select a bank
+7:08
+the payment id order id and signature
+7:11
+appear on the web page as notifications
+7:14
+on payment success payment id and order
+7:17
+id are generated
+7:19
+in case of failure the failure response
+7:22
+is shown our customer is asked to retry
+7:24
+the payment
+7:26
+you can view the payment on the
+7:27
+transaction tab of the recipe dashboard
+7:31
+login to the dashboard go to
+7:32
+transactions payments click on the
+7:34
+payment id to view the details
+7:40
+this completes the test integration
+7:43
+to start accepting live payments you
+7:46
+need to complete the kyc process and get
+7:49
+your app account activated
+7:51
+in the dashboard switch to the live mode
+7:53
+and generate the api keys in your
+7:56
+checkout.html file replace the test mode
+7:58
+api key with the live mode api key
+8:02
+your integration is complete in case of
+8:05
+any queries contact the razerbase
+8:07
+support team you can also raise a ticket
+8:10
+from the dashboard
+8:20
+thank you for watching this video

@@ -4,7 +4,7 @@
 
 ## Status
 
-Project initialized. Context documents populated. Ready for implementation.
+MVP implementation completed and Docker stack verified locally.
 
 ## Completed
 
@@ -19,21 +19,37 @@ Project initialized. Context documents populated. Ready for implementation.
 - [x] Create agent workflow contract (`AGENT.md`)
 - [x] Create and populate context index (`index.md`)
 
-## Next Steps
+## Implementation Progress
 
-- [ ] Initialize Next.js frontend (`src/frontend/`)
-- [ ] Initialize FastAPI backend (`src/backend/`)
-- [ ] Set up PostgreSQL schema + Alembic migrations
-- [ ] Implement Clerk authentication (Patient OTP + Staff login)
-- [ ] Build Patient Registration + PID generation
-- [ ] Build AI Triage module (Gemini Flash)
-- [ ] Build Appointment Booking flow
-- [ ] Build Reception Check-In + Queue Management
-- [ ] Build Doctor Dashboard (Patient Summary, SOAP Notes, Rx Generator)
-- [ ] Build Pharmacy Dashboard (Prescription Viewer, Dispensing, Alt-Medicine)
-- [ ] Build Billing + Razorpay Integration
-- [ ] Set up Docker Compose for full-stack orchestration
-- [ ] Write tests (pytest + Vitest + Playwright)
+- [x] Initialize Next.js frontend (`src/frontend/`)
+- [x] Initialize FastAPI backend (`src/backend/`)
+- [x] Set up PostgreSQL schema via SQLAlchemy metadata initialization
+- [x] Implement JWT demo authentication (Patient phone/password + Staff email/password)
+- [x] Build Patient Registration + PID generation
+- [x] Build AI Triage module
+- [x] Build Appointment Booking flow
+- [x] Build Reception Check-In + Queue Management
+- [x] Build Doctor Dashboard (Patient Summary, SOAP Notes, Rx Generator)
+- [x] Build Pharmacy Dashboard (Prescription Viewer, Dispensing, Alt-Medicine, Inventory)
+- [x] Build simulated billing/payment flow
+- [x] Set up Docker Compose for full-stack orchestration
+- [x] Add `.env.example` and root `README.md`
+
+## Verification
+
+- [x] `python -m compileall app`
+- [x] `npm run build`
+- [x] `npm run lint` (passes with warnings only)
+- [x] `docker compose up -d --build`
+- [x] `docker compose exec backend python seed.py`
+- [x] Backend health check: `http://localhost:8000/health`
+- [x] Frontend route checks: `/login`, `/pharmacy/inventory`
+- [x] Authenticated pharmacy inventory API smoke test
+
+## Remaining Follow-Up
+
+- [ ] Add automated pytest/Vitest/Playwright test suites.
+- [ ] Provide a real `GEMINI_API_KEY` for live AI calls.
 
 ## Source of Truth
 

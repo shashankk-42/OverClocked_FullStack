@@ -1,0 +1,28 @@
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+!*.env.example
+src/backend/.env
+src/frontend/.env.local
+api-keys.txt
+*api-key*.txt
+*api-keys*.txt
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+
+# Logs and local runtime state
+*.log
+.DS_Store
+Thumbs.db

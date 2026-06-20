@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Razorpay Test Sandbox</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card">
+        <p class="eyebrow">PAYMENT QA SANDBOX</p>
+        <h1>Razorpay Integration Sandbox</h1>
+        <p class="subtitle">
+          End-to-end test setup for creating orders, opening checkout, and verifying payment signatures.
+        </p>
+
+        <div class="grid">
+          <div class="field">
+            <label for="amount">Amount (INR)</label>
+            <input id="amount" type="number" min="1" value="100" />
+          </div>
+
+          <div class="field">
+            <label for="name">Customer Name</label>
+            <input id="name" type="text" value="Test Customer" />
+          </div>
+
+          <div class="field">
+            <label for="email">Customer Email</label>
+            <input id="email" type="email" value="test@example.com" />
+          </div>
+
+          <div class="field">
+            <label for="contact">Customer Contact</label>
+            <input id="contact" type="tel" value="9999999999" />
+          </div>
+        </div>
+
+        <button id="pay-btn">Pay with Razorpay</button>
+
+        <div id="status" class="status info">Ready for test transaction.</div>
+
+        <pre id="result" class="result"></pre>
+
+        <p class="footer-note">Use test mode only. No real funds are captured.</p>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
