@@ -2,10 +2,10 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { patientsApi, appointmentsApi } from '@/lib/api';
+import { patientsApi, appointmentsApi, billingApi } from '@/lib/api';
 import { QRCodeSVG } from 'qrcode.react';
 import { format } from 'date-fns';
-import { Calendar, Clock, ChevronRight, Activity, AlertCircle, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, ChevronRight, Activity, AlertCircle, CheckCircle, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 
 const PRIORITY_CLASS: Record<string, string> = {
@@ -36,6 +36,11 @@ export default function PatientDashboard() {
     queryFn: () => appointmentsApi.myAppointments().then((r) => r.data),
   });
 
+  const { data: pendingBills = [] } = useQuery({
+    queryKey: ['patient-bills'],
+    queryFn: () => billingApi.myBills().then((r) => r.data),
+  });
+
   const upcoming = appointments.filter((a: any) =>
     ['booked', 'checked_in'].includes(a.status) && new Date(a.scheduled_at) >= new Date()
   );
@@ -49,6 +54,30 @@ export default function PatientDashboard() {
         </h1>
         <p className="text-neutral-500 mt-1">Here's your health overview for today</p>
       </div>
+
+      {pendingBills.length > 0 && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <CreditCard className="mt-0.5 h-5 w-5 text-emerald-700" />
+              <div>
+                <p className="font-semibold text-emerald-900">
+                  {pendingBills.length} consultation payment{pendingBills.length > 1 ? 's' : ''} pending
+                </p>
+                <p className="mt-1 text-sm text-emerald-800">
+                  Total due: ₹{pendingBills.reduce((sum: number, b: any) => sum + b.total_amount, 0).toFixed(2)}
+                </p>
+              </div>
+            </div>
+            <Link
+              href={`/patient/billing?bill=${pendingBills[0].id}`}
+              className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+            >
+              Pay Now
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* PID Card */}
@@ -175,6 +204,7 @@ export default function PatientDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { href: '/patient/book', label: 'Book Appointment', icon: Calendar, color: 'bg-white border-neutral-200 text-neutral-900', iconBg: 'bg-neutral-100 text-neutral-600' },
+            { href: '/patient/billing', label: 'Pay Bill', icon: CreditCard, color: 'bg-white border-neutral-200 text-neutral-900', iconBg: 'bg-neutral-100 text-neutral-600' },
             { href: '/patient/history', label: 'Medical History', icon: Activity, color: 'bg-white border-neutral-200 text-neutral-900', iconBg: 'bg-neutral-100 text-neutral-600' },
             { href: '/patient/chat', label: 'AI Assistant', icon: CheckCircle, color: 'bg-white border-neutral-200 text-neutral-900', iconBg: 'bg-neutral-100 text-neutral-600' },
             { href: '/patient/profile', label: 'My Profile', icon: Activity, color: 'bg-white border-neutral-200 text-neutral-900', iconBg: 'bg-neutral-100 text-neutral-600' },

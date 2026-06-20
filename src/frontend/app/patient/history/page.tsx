@@ -2,9 +2,9 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { consultationsApi } from '@/lib/api';
+import { consultationsApi, getUploadsBaseUrl } from '@/lib/api';
 import { format } from 'date-fns';
-import { Calendar, Pill, FileText, ChevronDown, ChevronUp, Stethoscope } from 'lucide-react';
+import { Calendar, Pill, FileText, ChevronDown, ChevronUp, Stethoscope, Download } from 'lucide-react';
 import { useState } from 'react';
 
 export default function MedicalHistoryPage() {
@@ -129,6 +129,16 @@ export default function MedicalHistoryPage() {
                             </div>
                           ))}
                         </div>
+                      )}
+                      {rx.pdf_url && (
+                        <a
+                          href={`${getUploadsBaseUrl()}${rx.pdf_url}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
+                        >
+                          <Download className="h-3.5 w-3.5" /> Download prescription PDF
+                        </a>
                       )}
                     </div>
                   )}

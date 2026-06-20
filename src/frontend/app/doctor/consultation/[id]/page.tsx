@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { consultationsApi, aiApi } from '@/lib/api';
+import { consultationsApi, aiApi, getUploadsBaseUrl } from '@/lib/api';
 import { format } from 'date-fns';
-import { Brain, FileText, Pill, AlertTriangle, Loader2, CheckCircle2, Plus, Trash2 } from 'lucide-react';
+import { Brain, FileText, Pill, AlertTriangle, Loader2, CheckCircle2, Trash2, Download, Plus, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -26,6 +26,15 @@ export default function ConsultationPage() {
   const [notesLoading, setNotesLoading] = useState(false);
   const [rxLoading, setRxLoading] = useState(false);
   const [drugLoading, setDrugLoading] = useState(false);
+  const [savedPrescriptionId, setSavedPrescriptionId] = useState<string | null>(null);
+  const [savedPdfUrl, setSavedPdfUrl] = useState<string | null>(null);
+  const [newMed, setNewMed] = useState({ name: '', dosage: '', frequency: 'once daily', duration: '5 days', instructions: '' });
+
+  useEffect(() => {
+    if (!diagnosis && soapNotes?.assessment && soapNotes.assessment !== 'Diagnosis pending') {
+      setDiagnosis(soapNotes.assessment);
+    }
+  }, [soapNotes, diagnosis]);
 
   // Patient summary
   const { data: summaryData, isLoading: summaryLoading } = useQuery({
@@ -56,17 +65,38 @@ export default function ConsultationPage() {
   };
 
   const generateRx = async () => {
-    if (!diagnosis.trim()) return;
+    if (!diagnosis.trim()) {
+      toast.error('Enter a diagnosis first');
+      return;
+    }
     setRxLoading(true);
     try {
       const res = await aiApi.generatePrescription(diagnosis, patientId);
-      setMedicines(res.data.medicines || []);
-      toast.success('Prescription suggestions generated!');
-    } catch {
-      toast.error('Failed to generate prescription');
+      const suggested = res.data.medicines || [];
+      if (suggested.length === 0) {
+        toast.error('No medicines returned. Add medicines manually below.');
+      } else {
+        setMedicines(suggested);
+        toast.success(
+          res.data.source === 'offline'
+            ? 'Suggested medicines added (offline clinical template)'
+            : 'Prescription suggestions generated!'
+        );
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Failed to generate prescription');
     } finally {
       setRxLoading(false);
     }
+  };
+
+  const addManualMedicine = () => {
+    if (!newMed.name.trim() || !newMed.dosage.trim()) {
+      toast.error('Medicine name and dosage are required');
+      return;
+    }
+    setMedicines((prev) => [...prev, { ...newMed, form: 'tablet', quantity: 10 }]);
+    setNewMed({ name: '', dosage: '', frequency: 'once daily', duration: '5 days', instructions: '' });
   };
 
   const checkInteractions = async () => {
@@ -92,15 +122,37 @@ export default function ConsultationPage() {
       soap_notes: soapNotes,
       drug_interactions: drugCheckResult?.interactions || [],
     }),
-    onSuccess: () => {
-      toast.success('Prescription saved and sent to pharmacy!');
-      router.push('/doctor/dashboard');
+    onSuccess: (res) => {
+      setSavedPrescriptionId(res.data.id);
+      if (res.data.pdf_url) {
+        setSavedPdfUrl(`${getUploadsBaseUrl()}${res.data.pdf_url}`);
+      }
+      toast.success('Prescription saved, PDF generated, appointment closed, payment link sent to patient');
+      setTimeout(() => router.push('/doctor/dashboard'), 1500);
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.detail || 'Failed to save prescription');
     },
   });
 
+  const downloadPdf = async () => {
+    if (!savedPrescriptionId) return;
+    try {
+      const res = await consultationsApi.downloadPrescriptionPdf(savedPrescriptionId);
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `prescription-${savedPrescriptionId.slice(0, 8)}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      if (savedPdfUrl) window.open(savedPdfUrl, '_blank');
+      else toast.error('Could not download PDF');
+    }
+  };
+
+  const canSave = !!diagnosis.trim() && !savedPrescriptionId && !!patientId && !!appointmentId;
   const summary = summaryData?.summary;
   const context = summaryData?.context;
 
@@ -273,81 +325,137 @@ export default function ConsultationPage() {
       {/* Tab: Prescription */}
       {activeTab === 'prescription' && (
         <div className="space-y-4">
-          {/* Diagnosis input */}
-          <div className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm space-y-3">
-            <div className="flex items-center gap-2 mb-1">
+          <div className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm space-y-4">
+            <div className="flex items-center gap-2">
               <Pill className="w-5 h-5 text-amber-600" />
-              <h2 className="font-semibold text-neutral-900">AI Prescription Generator</h2>
+              <div>
+                <h2 className="font-semibold text-neutral-900">Prescription & Close Visit</h2>
+                <p className="text-sm text-neutral-500">Enter diagnosis, add medicines, then save to generate PDF, close appointment, and notify patient for payment.</p>
+              </div>
             </div>
-            <input
-              id="diagnosis-input"
-              value={diagnosis}
-              onChange={(e) => setDiagnosis(e.target.value)}
-              placeholder="Enter diagnosis (e.g. Community-acquired pneumonia)"
-              className="w-full px-3 py-2.5 bg-white border border-neutral-300 rounded-lg text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
-            />
-            <button onClick={generateRx} disabled={!diagnosis.trim() || rxLoading}
+
+            {soapNotes && (
+              <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800">
+                SOAP notes attached. Assessment: {soapNotes.assessment || '—'}
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="diagnosis-input" className="mb-1 block text-xs font-medium uppercase tracking-wide text-neutral-500">Diagnosis</label>
+              <input
+                id="diagnosis-input"
+                value={diagnosis}
+                onChange={(e) => setDiagnosis(e.target.value)}
+                placeholder="e.g. Acute viral upper respiratory infection"
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 placeholder-neutral-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+
+            <button
+              onClick={generateRx}
+              disabled={!diagnosis.trim() || rxLoading}
               id="generate-rx-btn"
-              className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white rounded-xl font-semibold flex items-center justify-center gap-2">
+              className="w-full rounded-xl border border-neutral-300 bg-neutral-50 py-2.5 text-sm font-medium text-neutral-800 hover:bg-neutral-100 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
               {rxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
-              {rxLoading ? 'Generating...' : 'Generate Prescription'}
+              {rxLoading ? 'Suggesting medicines...' : 'Suggest Medicines with AI'}
             </button>
           </div>
 
-          {/* Medicine list */}
-          {medicines.length > 0 && (
-            <div className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-neutral-900">Medicines ({medicines.length})</h3>
+          <div className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-neutral-900">Medicines ({medicines.length})</h3>
+              {medicines.length > 0 && (
                 <button onClick={checkInteractions} disabled={drugLoading}
                   className="text-xs px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-lg flex items-center gap-1.5">
                   {drugLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <AlertTriangle className="w-3 h-3" />}
                   Check Interactions
                 </button>
-              </div>
-
-              {/* Drug interaction result */}
-              {drugCheckResult && (
-                <div className={`p-3 rounded-xl border text-sm ${
-                  drugCheckResult.has_interactions
-                    ? 'bg-red-50 border-red-200 text-red-700'
-                    : 'bg-green-50 border-green-200 text-green-700'
-                }`}>
-                  <div className="flex items-center gap-2 font-medium mb-1">
-                    {drugCheckResult.has_interactions ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
-                    {drugCheckResult.has_interactions ? 'Interactions Detected' : 'No Interactions Found'}
-                  </div>
-                  <p className="text-xs opacity-80">{drugCheckResult.overall_recommendation}</p>
-                </div>
               )}
+            </div>
 
+            {drugCheckResult && (
+              <div className={`p-3 rounded-xl border text-sm ${
+                drugCheckResult.has_interactions
+                  ? 'bg-red-50 border-red-200 text-red-700'
+                  : 'bg-green-50 border-green-200 text-green-700'
+              }`}>
+                <div className="flex items-center gap-2 font-medium mb-1">
+                  {drugCheckResult.has_interactions ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                  {drugCheckResult.has_interactions ? 'Interactions Detected' : 'No Interactions Found'}
+                </div>
+                <p className="text-xs opacity-80">{drugCheckResult.overall_recommendation}</p>
+              </div>
+            )}
+
+            {medicines.length === 0 ? (
+              <p className="text-sm text-neutral-500">No medicines yet. Use AI suggest above or add manually below.</p>
+            ) : (
               <div className="space-y-3">
                 {medicines.map((m: any, i: number) => (
-                  <div key={i} className="flex items-start gap-3 p-3 bg-neutral-50 border border-neutral-200 rounded-xl">
-                    <Pill className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                  <div key={i} className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                    <Pill className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-neutral-900">{m.name} <span className="text-neutral-500 font-normal">{m.dosage}</span></p>
+                      <p className="text-sm font-medium text-neutral-900">{m.name} <span className="font-normal text-neutral-500">{m.dosage}</span></p>
                       <p className="text-xs text-neutral-500">{m.frequency} • {m.duration}</p>
-                      {m.instructions && <p className="text-xs text-neutral-600 italic">{m.instructions}</p>}
+                      {m.instructions && <p className="text-xs italic text-neutral-600">{m.instructions}</p>}
                     </div>
-                    <button onClick={() => setMedicines(prev => prev.filter((_, idx) => idx !== i))}
-                      className="text-neutral-400 hover:text-red-600 transition-colors">
-                      <Trash2 className="w-3.5 h-3.5" />
+                    <button onClick={() => setMedicines((prev) => prev.filter((_, idx) => idx !== i))} className="text-neutral-400 hover:text-red-600">
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 ))}
               </div>
+            )}
 
-              <button
-                id="save-prescription-btn"
-                onClick={() => savePrescriptionMutation.mutate()}
-                disabled={savePrescriptionMutation.isPending || !diagnosis}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-semibold flex items-center justify-center gap-2">
-                {savePrescriptionMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                {savePrescriptionMutation.isPending ? 'Saving...' : 'Save & Send to Pharmacy'}
+            <div className="rounded-xl border border-dashed border-neutral-300 p-4 space-y-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Add medicine manually</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <input value={newMed.name} onChange={(e) => setNewMed({ ...newMed, name: e.target.value })} placeholder="Medicine name" className="rounded-lg border border-neutral-300 px-3 py-2 text-sm" />
+                <input value={newMed.dosage} onChange={(e) => setNewMed({ ...newMed, dosage: e.target.value })} placeholder="Dosage (e.g. 500mg)" className="rounded-lg border border-neutral-300 px-3 py-2 text-sm" />
+                <input value={newMed.frequency} onChange={(e) => setNewMed({ ...newMed, frequency: e.target.value })} placeholder="Frequency" className="rounded-lg border border-neutral-300 px-3 py-2 text-sm" />
+                <input value={newMed.duration} onChange={(e) => setNewMed({ ...newMed, duration: e.target.value })} placeholder="Duration" className="rounded-lg border border-neutral-300 px-3 py-2 text-sm" />
+              </div>
+              <button onClick={addManualMedicine} className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800">
+                <Plus className="h-3.5 w-3.5" /> Add Medicine
               </button>
             </div>
-          )}
+          </div>
+
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm space-y-3">
+            <h3 className="font-semibold text-emerald-900">Complete Consultation</h3>
+            <p className="text-sm text-emerald-800">
+              Saves prescription to history, generates PDF from SOAP notes, marks appointment completed, and sends payment link to the patient.
+            </p>
+
+            <button
+              id="save-prescription-btn"
+              onClick={() => savePrescriptionMutation.mutate()}
+              disabled={!canSave || savePrescriptionMutation.isPending}
+              className="w-full rounded-xl bg-emerald-600 py-3.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {savePrescriptionMutation.isPending ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Saving & closing visit...</>
+              ) : savedPrescriptionId ? (
+                <><CheckCircle2 className="h-4 w-4" /> Visit Completed</>
+              ) : (
+                <><LogOut className="h-4 w-4" /> Save Prescription & Close Appointment</>
+              )}
+            </button>
+
+            {!diagnosis.trim() && (
+              <p className="text-xs text-amber-700">Enter a diagnosis to enable save.</p>
+            )}
+
+            {savedPrescriptionId && (
+              <button
+                onClick={downloadPdf}
+                className="inline-flex items-center gap-2 text-sm font-medium text-emerald-800 hover:underline"
+              >
+                <Download className="h-4 w-4" /> Download prescription PDF
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

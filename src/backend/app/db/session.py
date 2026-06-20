@@ -34,6 +34,9 @@ async def get_db() -> AsyncSession:
 
 
 async def init_db():
-    """Create all tables."""
+    """Create all tables and apply lightweight schema patches."""
+    from app.db.migrate import apply_schema_patches
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await apply_schema_patches(conn)

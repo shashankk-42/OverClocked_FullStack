@@ -21,6 +21,7 @@ class Prescription(Base):
     status: Mapped[str] = mapped_column(String(30), default="pending")
     # pending | dispensed | cancelled
     drug_interactions: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    pdf_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

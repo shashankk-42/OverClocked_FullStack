@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.db.session import init_db
-from app.routers import auth, patients, appointments, consultations, pharmacy, ai, enhancements
+from app.routers import auth, patients, appointments, consultations, pharmacy, ai, enhancements, billing
 
 # Import all models to register them with SQLAlchemy metadata
 import app.models  # noqa: F401
@@ -20,7 +20,9 @@ async def lifespan(app: FastAPI):
         try:
             from seed import seed
 
-            await seed()
+            result = await seed(force=False)
+            if not result.get("skipped"):
+                print(f"Startup seed loaded: {result.get('patients', 0)} patients, {result.get('doctors', 0)} doctors")
         except Exception as exc:
             if settings.debug:
                 raise
@@ -57,6 +59,7 @@ app.include_router(consultations.router, prefix="/api/v1")
 app.include_router(pharmacy.router, prefix="/api/v1")
 app.include_router(ai.router, prefix="/api/v1")
 app.include_router(enhancements.router, prefix="/api/v1")
+app.include_router(billing.router, prefix="/api/v1")
 
 
 @app.get("/")

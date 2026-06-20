@@ -1,0 +1,147 @@
+For a 3-floor mid-sized smart hospital (120–150 beds), this would be a realistic dataset size while still being manageable for a hackathon demo.
+
+Hospital Capacity
+Hospital Name: MediFlow Smart Hospital
+Floors: 3
+Beds: 150
+
+General Ward Beds: 80
+Private Rooms: 40
+ICU Beds: 20
+Emergency Beds: 10
+
+Daily OPD Capacity: 300 Patients
+Daily Emergency Cases: 30 Patients
+Staff Structure
+Doctors
+General Medicine
+General Physicians: 8
+Specialists
+Cardiologists: 3
+Neurologists: 2
+Orthopedics: 3
+Pediatricians: 3
+Dermatologists: 2
+ENT Specialists: 2
+Ophthalmologists: 2
+Gynecologists: 3
+Pulmonologists: 2
+Radiologists: 2
+Pathologists: 2
+Total Doctors
+34 Doctors
+Nursing Staff
+ICU Nurses: 12
+Ward Nurses: 20
+Emergency Nurses: 8
+OPD Nurses: 10
+Total Nurses
+50 Nurses
+Reception & Front Desk
+Receptionists: 8
+Help Desk Executives: 4
+Appointment Coordinators: 3
+Total
+15 Staff
+Pharmacy
+Chief Pharmacist: 1
+Pharmacists: 4
+Inventory Managers: 2
+Billing Executives: 2
+Total
+9 Staff
+Laboratory
+Lab Technicians: 8
+Sample Collection Staff: 4
+Lab Manager: 1
+Total
+13 Staff
+Emergency Department
+Emergency Doctors: 4
+Emergency Nurses: 8
+Paramedics: 6
+Total
+18 Staff
+Administration
+Hospital Administrator: 1
+HR Managers: 2
+Finance Officers: 2
+Operations Managers: 2
+IT Support: 3
+Total
+10 Staff
+Support Staff
+Security Guards: 12
+Housekeeping: 15
+Ward Assistants: 12
+Total
+39 Staff
+Grand Staff Count
+Doctors: 34
+Nurses: 50
+Reception: 15
+Pharmacy: 9
+Laboratory: 13
+Emergency: 18
+Administration: 10
+Support: 39
+
+TOTAL STAFF = 188
+Patient Database
+For demo purposes:
+
+Registered Patients: 500
+Active Patients: 250
+
+OPD Patients: 180
+Admitted Patients: 50
+ICU Patients: 10
+Emergency Cases: 10
+Medicine Inventory
+Medicine Brands: 120
+Generic Medicines: 80
+
+Total Medicines:
+200
+Categories:
+
+Cardiology: 30
+Diabetes: 20
+Antibiotics: 40
+Painkillers: 25
+Emergency Drugs: 15
+Respiratory: 20
+Dermatology: 15
+Pediatrics: 20
+Others: 15
+Reports Database
+Blood Reports: 500
+X-Ray Reports: 150
+MRI Reports: 60
+CT Scan Reports: 80
+Ultrasound Reports: 100
+
+Total Reports: 890
+Appointments
+Past Appointments: 1500
+Upcoming Appointments: 120
+Prescriptions
+Stored Prescriptions: 1200
+Recommended Hackathon Dataset
+If you're using PostgreSQL/Supabase:
+
+Patients: 500
+Doctors: 34
+Nurses: 50
+Reception Staff: 15
+Pharmacists: 9
+Lab Staff: 13
+Emergency Staff: 18
+Admin Staff: 10
+
+Medicines: 200
+Appointments: 1500
+Prescriptions: 1200
+Reports: 890
+Bills: 1500
+This size is large enough for impressive AI summaries, search, analytics, and dashboards while still being lightweight enough to seed and demo during a hackathon.

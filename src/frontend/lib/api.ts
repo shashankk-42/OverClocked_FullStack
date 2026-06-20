@@ -78,7 +78,29 @@ export const consultationsApi = {
   createPrescription: (data: Record<string, unknown>) =>
     apiClient.post('/consultations/prescription', data),
   getPrescription: (id: string) => apiClient.get(`/consultations/prescription/${id}`),
+  downloadPrescriptionPdf: (id: string) =>
+    apiClient.get(`/consultations/prescription/${id}/pdf`, { responseType: 'blob' }),
 };
+
+// ─── Billing ──────────────────────────────────────────────────
+export const billingApi = {
+  config: () => apiClient.get('/billing/config'),
+  myBills: () => apiClient.get('/billing/my'),
+  getAppointmentBill: (appointmentId: string) =>
+    apiClient.get(`/billing/appointment/${appointmentId}`),
+  sendPaymentLink: (appointmentId: string) =>
+    apiClient.post(`/billing/appointment/${appointmentId}/send-payment-link`),
+  createOrder: (billId: string) => apiClient.post(`/billing/${billId}/create-order`),
+  verifyPayment: (data: {
+    bill_id: string;
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+  }) => apiClient.post('/billing/verify', data),
+};
+
+export const getUploadsBaseUrl = () =>
+  (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1').replace('/api/v1', '');
 
 // ─── Pharmacy ─────────────────────────────────────────────────
 export const pharmacyApi = {

@@ -4,12 +4,13 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/shared/Sidebar';
-import { AlertTriangle, Bed, FileText, HeartPulse, LayoutDashboard, Calendar, History, MessageSquare, Pill, ShieldCheck, Siren, User, Users } from 'lucide-react';
+import { AlertTriangle, Bed, CreditCard, FileText, HeartPulse, LayoutDashboard, Calendar, History, MessageSquare, Pill, ShieldCheck, Siren, User, Users } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/patient/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/patient/emergency', label: 'Emergency', icon: Siren },
   { href: '/patient/book', label: 'Book Appointment', icon: Calendar },
+  { href: '/patient/billing', label: 'Billing', icon: CreditCard },
   { href: '/patient/history', label: 'Medical History', icon: History },
   { href: '/patient/medications', label: 'Medications', icon: Pill },
   { href: '/patient/reports', label: 'Test Results', icon: FileText },

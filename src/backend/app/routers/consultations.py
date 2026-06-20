@@ -1,5 +1,7 @@
 import uuid
+import os
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.session import get_db
@@ -13,6 +15,7 @@ from app.services.consultation import (
     get_prescription_by_id, get_patient_history_context
 )
 from app.ai.patient_summary import generate_patient_summary
+from app.config import settings
 
 router = APIRouter(prefix="/consultations", tags=["Consultations"])
 
@@ -85,6 +88,7 @@ async def get_patient_history(
             "medicines": rx.medicines,
             "soap_notes": rx.soap_notes,
             "status": rx.status,
+            "pdf_url": f"/uploads/{rx.pdf_path}" if rx.pdf_path else None,
             "created_at": rx.created_at.isoformat(),
         })
 
@@ -123,7 +127,8 @@ async def create_prescription_route(
         return {
             "id": str(prescription.id),
             "status": prescription.status,
-            "message": "Prescription created and sent to pharmacy",
+            "pdf_url": f"/uploads/{prescription.pdf_path}" if prescription.pdf_path else None,
+            "message": "Prescription saved, PDF generated, and payment link sent to patient",
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -159,6 +164,7 @@ async def list_prescriptions(
             "diagnosis": rx.diagnosis,
             "medicines": rx.medicines or [],
             "status": rx.status,
+            "pdf_url": f"/uploads/{rx.pdf_path}" if rx.pdf_path else None,
             "created_at": rx.created_at.isoformat(),
         })
     return rows
@@ -190,5 +196,35 @@ async def get_prescription(
         "soap_notes": prescription.soap_notes,
         "status": prescription.status,
         "drug_interactions": prescription.drug_interactions,
+        "pdf_url": f"/uploads/{prescription.pdf_path}" if prescription.pdf_path else None,
         "created_at": prescription.created_at.isoformat(),
     }
+
+
+@router.get("/prescription/{prescription_id}/pdf")
+async def download_prescription_pdf(
+    prescription_id: str,
+    current_user: User = Depends(require_role("doctor", "pharmacist", "admin", "patient")),
+    db: AsyncSession = Depends(get_db),
+):
+    prescription = await get_prescription_by_id(db, uuid.UUID(prescription_id))
+    if not prescription:
+        raise HTTPException(status_code=404, detail="Prescription not found")
+
+    if current_user.role == "patient" and current_user.linked_id != prescription.patient_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if current_user.role == "doctor" and current_user.linked_id != prescription.doctor_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if not prescription.pdf_path:
+        raise HTTPException(status_code=404, detail="PDF not generated for this prescription")
+
+    abs_path = os.path.join(settings.uploads_dir, prescription.pdf_path)
+    if not os.path.exists(abs_path):
+        raise HTTPException(status_code=404, detail="PDF file missing on server")
+
+    return FileResponse(
+        abs_path,
+        media_type="application/pdf",
+        filename=f"prescription-{prescription_id[:8]}.pdf",
+    )

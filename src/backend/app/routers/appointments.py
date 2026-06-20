@@ -215,6 +215,25 @@ async def update_status(
     appt = result.scalar_one_or_none()
     if not appt:
         raise HTTPException(status_code=404, detail="Appointment not found")
+
+    if current_user.role == "doctor" and appt.doctor_id != current_user.linked_id:
+        raise HTTPException(status_code=403, detail="Not your appointment")
+
+    allowed = {"booked", "checked_in", "in_consultation", "completed", "cancelled"}
+    if status not in allowed:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Use one of: {', '.join(sorted(allowed))}")
+
+    if status == "checked_in" and appt.status == "booked":
+        appt = await check_in_patient(db, appt.id)
+        return {
+            "message": "Appointment accepted",
+            "status": appt.status,
+            "queue_position": appt.queue_position,
+        }
+
+    if status == "cancelled" and appt.status not in {"booked", "checked_in"}:
+        raise HTTPException(status_code=400, detail=f"Cannot cancel appointment with status '{appt.status}'")
+
     appt.status = status
     await db.flush()
     return {"message": "Status updated", "status": status}

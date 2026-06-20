@@ -57,7 +57,7 @@ async def generate_rx(
 ):
     context = await get_patient_history_context(db, uuid.UUID(data.patient_id))
     medicines = await generate_prescription(data.diagnosis, context)
-    return {"medicines": medicines}
+    return {"medicines": medicines, "source": "ai" if medicines else "offline"}
 
 
 @router.post("/drug-interaction")

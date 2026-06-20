@@ -117,7 +117,7 @@ class CreatePrescriptionRequest(BaseModel):
     patient_id: str
     appointment_id: Optional[str] = None
     diagnosis: str
-    medicines: list[MedicineItem]
+    medicines: list[MedicineItem] = []
     soap_notes: Optional[dict] = None
     drug_interactions: Optional[list] = None
 

@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     # Demo/dev data
     seed_demo_data: bool = True
 
+    # Razorpay
+    razorpay_key_id: str = ""
+    razorpay_key_secret: str = ""
+    consultation_fee: float = 500.0
+    frontend_url: str = "http://localhost:3000"
+
     class Config:
         env_file = ".env"
         case_sensitive = False

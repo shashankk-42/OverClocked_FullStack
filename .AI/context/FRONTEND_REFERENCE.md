@@ -272,3 +272,4 @@ xl: 1280px   /* Wide desktop */
 - Keyboard navigation for all flows (Tab, Enter, Escape)
 - Screen reader announcements for dynamic content changes (queue updates, AI responses)
 - Status badges use icons + text (not color alone)
+

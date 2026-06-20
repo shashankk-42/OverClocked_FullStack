@@ -58,13 +58,15 @@ ethosh/
 
 ### Prerequisites
 
-| Tool | Version | Check |
-| ---- | ------- | ----- |
-| Node.js | 18+ | `node --version` |
-| Python | 3.11+ | `python --version` |
-| PostgreSQL | 15+ | `psql --version` |
-| Docker | 24+ | `docker --version` |
-| Docker Compose | 2.x | `docker compose version` |
+
+| Tool           | Version | Check                    |
+| -------------- | ------- | ------------------------ |
+| Node.js        | 18+     | `node --version`         |
+| Python         | 3.11+   | `python --version`       |
+| PostgreSQL     | 15+     | `psql --version`         |
+| Docker         | 24+     | `docker --version`       |
+| Docker Compose | 2.x     | `docker compose version` |
+
 
 ### Quick Start (Docker)
 
@@ -112,20 +114,22 @@ uvicorn app.main:app --reload --port 8000
 
 ### Environment Variables
 
-| Variable | Required | Default | Description |
-| -------- | -------- | ------- | ----------- |
-| `DATABASE_URL` | Yes | — | PostgreSQL connection string |
-| `GEMINI_API_KEY` | Yes | — | Google Gemini API key |
-| `CLERK_SECRET_KEY` | Yes | — | Clerk backend secret |
-| `CLERK_WEBHOOK_SECRET` | Yes | — | Clerk webhook verification |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Yes | — | Clerk frontend key |
-| `SUPABASE_URL` | Yes | — | Supabase project URL |
-| `SUPABASE_SERVICE_KEY` | Yes | — | Supabase service role key |
-| `RAZORPAY_KEY_ID` | Yes | — | Razorpay merchant key |
-| `RAZORPAY_KEY_SECRET` | Yes | — | Razorpay merchant secret |
-| `NEXT_PUBLIC_API_URL` | No | `http://localhost:8000/api/v1` | Backend API base URL |
-| `LOG_LEVEL` | No | `INFO` | Python logging level |
-| `CORS_ORIGINS` | No | `http://localhost:3000` | Comma-separated allowed origins |
+
+| Variable                            | Required | Default                        | Description                     |
+| ----------------------------------- | -------- | ------------------------------ | ------------------------------- |
+| `DATABASE_URL`                      | Yes      | —                              | PostgreSQL connection string    |
+| `GEMINI_API_KEY`                    | Yes      | —                              | Google Gemini API key           |
+| `CLERK_SECRET_KEY`                  | Yes      | —                              | Clerk backend secret            |
+| `CLERK_WEBHOOK_SECRET`              | Yes      | —                              | Clerk webhook verification      |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Yes      | —                              | Clerk frontend key              |
+| `SUPABASE_URL`                      | Yes      | —                              | Supabase project URL            |
+| `SUPABASE_SERVICE_KEY`              | Yes      | —                              | Supabase service role key       |
+| `RAZORPAY_KEY_ID`                   | Yes      | —                              | Razorpay merchant key           |
+| `RAZORPAY_KEY_SECRET`               | Yes      | —                              | Razorpay merchant secret        |
+| `NEXT_PUBLIC_API_URL`               | No       | `http://localhost:8000/api/v1` | Backend API base URL            |
+| `LOG_LEVEL`                         | No       | `INFO`                         | Python logging level            |
+| `CORS_ORIGINS`                      | No       | `http://localhost:3000`        | Comma-separated allowed origins |
+
 
 ---
 
@@ -230,12 +234,14 @@ logger.info("Appointment booked", extra={
 
 ## 7. Testing Strategy
 
-| Layer | Framework | Location | Coverage Target |
-| ----- | --------- | -------- | --------------- |
-| Backend Unit | pytest | `src/backend/tests/unit/` | Services, AI modules |
-| Backend Integration | pytest | `src/backend/tests/integration/` | API endpoints with test DB |
-| Frontend Unit | Vitest | `src/frontend/__tests__/` | Components, hooks, utils |
-| Frontend E2E | Playwright | `src/frontend/e2e/` | Critical user flows |
+
+| Layer               | Framework  | Location                         | Coverage Target            |
+| ------------------- | ---------- | -------------------------------- | -------------------------- |
+| Backend Unit        | pytest     | `src/backend/tests/unit/`        | Services, AI modules       |
+| Backend Integration | pytest     | `src/backend/tests/integration/` | API endpoints with test DB |
+| Frontend Unit       | Vitest     | `src/frontend/__tests__/`        | Components, hooks, utils   |
+| Frontend E2E        | Playwright | `src/frontend/e2e/`              | Critical user flows        |
+
 
 ### Running Tests
 
@@ -251,3 +257,4 @@ npm run test
 # Frontend — E2E
 npm run test:e2e
 ```
+

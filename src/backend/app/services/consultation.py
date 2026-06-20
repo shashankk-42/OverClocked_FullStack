@@ -7,6 +7,8 @@ from app.models.appointment import Appointment
 from app.models.patient import Patient
 from app.models.doctor import Doctor
 from app.models.report import Report
+from app.services.prescription_pdf import generate_prescription_pdf
+from app.services.billing import create_consultation_bill, send_payment_link_notification
 
 
 async def get_patient_history_context(db: AsyncSession, patient_id: uuid.UUID) -> dict:
@@ -104,7 +106,31 @@ async def create_prescription(
     db.add(prescription)
     await db.flush()
 
+    patient_result = await db.execute(select(Patient).where(Patient.id == patient_id))
+    patient = patient_result.scalar_one_or_none()
+    doctor_result = await db.execute(select(Doctor).where(Doctor.id == doctor_id))
+    doctor = doctor_result.scalar_one_or_none()
+
+    if patient and doctor:
+        try:
+            pdf_path = generate_prescription_pdf(
+                prescription_id=prescription.id,
+                patient={"name": patient.name, "pid": patient.pid},
+                doctor={
+                    "name": doctor.name,
+                    "department": doctor.department,
+                    "specialization": doctor.specialization,
+                },
+                diagnosis=diagnosis,
+                medicines=medicines,
+                soap_notes=soap_notes,
+            )
+            prescription.pdf_path = pdf_path
+        except Exception:
+            pass
+
     # Update appointment status if exists
+    appt = None
     if appointment_id:
         appt_result = await db.execute(
             select(Appointment).where(Appointment.id == appointment_id)
@@ -112,6 +138,18 @@ async def create_prescription(
         appt = appt_result.scalar_one_or_none()
         if appt:
             appt.status = "completed"
+
+    bill = await create_consultation_bill(
+        db=db,
+        patient_id=patient_id,
+        appointment_id=appointment_id,
+        prescription_id=prescription.id,
+    )
+    await send_payment_link_notification(
+        db,
+        bill,
+        doctor.name if doctor else None,
+    )
 
     return prescription
 
