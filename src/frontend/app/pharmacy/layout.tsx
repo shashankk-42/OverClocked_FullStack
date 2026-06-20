@@ -32,7 +32,7 @@ export default function PharmacyLayout({ children }: { children: React.ReactNode
   return (
     <div className="flex min-h-screen bg-neutral-50">
       <Sidebar items={NAV_ITEMS} role="pharmacist" />
-      <main className="ml-64 flex-1 p-8 animate-fadeIn">{children}</main>
+      <main className="flex-1 p-4 pt-20 animate-fadeIn md:ml-64 md:p-8">{children}</main>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.session import get_db
@@ -12,10 +13,16 @@ from app.schemas.schemas import BookAppointmentRequest, AppointmentResponse, Doc
 from app.services.appointment import (
     book_appointment, get_appointments_for_patient,
     get_appointments_for_doctor_today, check_in_patient,
-    get_available_doctors, get_available_slots, get_queue_for_doctor
+    get_available_doctors, get_available_slots, get_queue_for_doctor,
+    update_appointment_state,
 )
 
 router = APIRouter(prefix="/appointments", tags=["Appointments"])
+
+
+class PresenceUpdateRequest(BaseModel):
+    status: str
+    notes: str | None = None
 
 
 @router.get("/doctors")
@@ -169,12 +176,12 @@ async def check_in(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        appointment = await check_in_patient(db, uuid.UUID(appointment_id))
+        appointment = await check_in_patient(db, uuid.UUID(appointment_id), target_status="waiting")
         return {
             "id": str(appointment.id),
             "status": appointment.status,
             "queue_position": appointment.queue_position,
-            "message": f"Patient checked in. Queue position: #{appointment.queue_position}",
+            "message": f"Patient checked in and added to waiting queue. Queue position: #{appointment.queue_position}",
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -219,21 +226,44 @@ async def update_status(
     if current_user.role == "doctor" and appt.doctor_id != current_user.linked_id:
         raise HTTPException(status_code=403, detail="Not your appointment")
 
-    allowed = {"booked", "checked_in", "in_consultation", "completed", "cancelled"}
-    if status not in allowed:
-        raise HTTPException(status_code=400, detail=f"Invalid status. Use one of: {', '.join(sorted(allowed))}")
+    try:
+        appt = await update_appointment_state(db, appt, status)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
-    if status == "checked_in" and appt.status == "booked":
-        appt = await check_in_patient(db, appt.id)
-        return {
-            "message": "Appointment accepted",
-            "status": appt.status,
-            "queue_position": appt.queue_position,
-        }
+    return {
+        "message": "Status updated",
+        "status": appt.status,
+        "queue_position": appt.queue_position,
+    }
 
-    if status == "cancelled" and appt.status not in {"booked", "checked_in"}:
-        raise HTTPException(status_code=400, detail=f"Cannot cancel appointment with status '{appt.status}'")
 
-    appt.status = status
-    await db.flush()
-    return {"message": "Status updated", "status": status}
+@router.patch("/{appointment_id}/presence")
+async def update_presence(
+    appointment_id: str,
+    data: PresenceUpdateRequest,
+    current_user: User = Depends(require_role("receptionist", "admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.appointment import Appointment
+
+    result = await db.execute(select(Appointment).where(Appointment.id == uuid.UUID(appointment_id)))
+    appt = result.scalar_one_or_none()
+    if not appt:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    if data.notes:
+        existing = f"{appt.notes}\n" if appt.notes else ""
+        appt.notes = f"{existing}{data.notes}".strip()
+
+    try:
+        appt = await update_appointment_state(db, appt, data.status)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return {
+        "message": "Presence updated",
+        "id": str(appt.id),
+        "status": appt.status,
+        "queue_position": appt.queue_position,
+    }

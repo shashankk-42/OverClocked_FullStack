@@ -151,10 +151,17 @@ aside.fixed {
 .priority-low,
 .status-booked,
 .status-checked_in,
+.status-waiting,
 .status-in_consultation,
 .status-completed,
 .status-cancelled,
+.status-absent,
+.status-late,
 .status-pending,
+.status-patient_review,
+.status-preparing,
+.status-ready_for_pickup,
+.status-fulfilled,
 .status-dispensed,
 .status-paid {
   border-width: 1px;
@@ -167,7 +174,8 @@ aside.fixed {
 }
 
 .priority-emergency,
-.status-cancelled {
+.status-cancelled,
+.status-absent {
   background: var(--status-danger-bg);
   border-color: var(--status-danger-border);
   color: var(--status-danger-text);
@@ -180,7 +188,10 @@ aside.fixed {
 }
 
 .priority-medium,
-.status-pending {
+.status-pending,
+.status-late,
+.status-patient_review,
+.status-preparing {
   background: var(--status-warning-bg);
   border-color: var(--status-warning-border);
   color: var(--status-warning-text);
@@ -188,6 +199,7 @@ aside.fixed {
 
 .priority-low,
 .status-completed,
+.status-fulfilled,
 .status-dispensed,
 .status-paid {
   background: var(--status-success-bg);
@@ -201,13 +213,15 @@ aside.fixed {
   color: var(--status-info-text);
 }
 
-.status-checked_in {
+.status-checked_in,
+.status-waiting {
   background: #f5f5f5;
   border-color: var(--border);
   color: var(--text-secondary);
 }
 
-.status-in_consultation {
+.status-in_consultation,
+.status-ready_for_pickup {
   background: var(--status-warning-bg);
   border-color: var(--status-warning-border);
   color: var(--status-warning-text);

@@ -209,7 +209,7 @@ async def predict_wait_time(
         select(Appointment).where(
             and_(
                 Appointment.doctor_id == appointment.doctor_id,
-                Appointment.status.in_(["checked_in", "in_consultation"]),
+                Appointment.status.in_(["checked_in", "waiting", "in_consultation"]),
             )
         )
     )

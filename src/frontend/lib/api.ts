@@ -66,6 +66,8 @@ export const appointmentsApi = {
   getQueue: (doctorId: string) => apiClient.get(`/appointments/queue/${doctorId}`),
   updateStatus: (id: string, status: string) =>
     apiClient.patch(`/appointments/${id}/status`, null, { params: { status } }),
+  updatePresence: (id: string, status: string, notes?: string) =>
+    apiClient.patch(`/appointments/${id}/presence`, { status, notes }),
 };
 
 // ─── Consultations ────────────────────────────────────────────
@@ -91,6 +93,12 @@ export const billingApi = {
   sendPaymentLink: (appointmentId: string) =>
     apiClient.post(`/billing/appointment/${appointmentId}/send-payment-link`),
   createOrder: (billId: string) => apiClient.post(`/billing/${billId}/create-order`),
+  payBill: (billId: string, paymentMethod: string, gatewayReference?: string) =>
+    apiClient.post(`/billing/${billId}/pay`, {
+      payment_method: paymentMethod,
+      gateway_reference: gatewayReference,
+    }),
+  receipt: (transactionId: string) => apiClient.get(`/billing/receipts/${transactionId}`),
   verifyPayment: (data: {
     bill_id: string;
     razorpay_order_id: string;
@@ -105,6 +113,10 @@ export const getUploadsBaseUrl = () =>
 // ─── Pharmacy ─────────────────────────────────────────────────
 export const pharmacyApi = {
   pendingPrescriptions: () => apiClient.get('/pharmacy/prescriptions/pending'),
+  orders: (status?: string) => apiClient.get('/pharmacy/orders', { params: { status } }),
+  approveOrder: (orderId: string) => apiClient.post(`/pharmacy/orders/${orderId}/approve`),
+  updateOrderStatus: (orderId: string, status: string, notes?: string) =>
+    apiClient.patch(`/pharmacy/orders/${orderId}/status`, { status, notes }),
   dispense: (prescriptionId: string) =>
     apiClient.post(`/pharmacy/dispense/${prescriptionId}`),
   pay: (billId: string, paymentMethod?: string) =>
@@ -113,6 +125,27 @@ export const pharmacyApi = {
   lowStock: () => apiClient.get('/pharmacy/inventory/low-stock'),
   bills: () => apiClient.get('/pharmacy/bills'),
   patientBills: (patientId: string) => apiClient.get(`/pharmacy/bills/${patientId}`),
+};
+
+export const navigationApi = {
+  locations: (params?: Record<string, unknown>) => apiClient.get('/navigation/locations', { params }),
+  floors: () => apiClient.get('/navigation/floors'),
+  route: (destinationCode: string, startCode = 'reception') =>
+    apiClient.get('/navigation/route', { params: { destination_code: destinationCode, start_code: startCode } }),
+  appointmentLocation: (appointmentId: string) => apiClient.get(`/navigation/appointment/${appointmentId}`),
+  currentJourney: () => apiClient.get('/navigation/journey/current'),
+};
+
+export const nurseApi = {
+  dashboard: () => apiClient.get('/nurse/dashboard'),
+  recordVitals: (data: Record<string, unknown>) => apiClient.post('/nurse/vitals', data),
+  updateAssignment: (assignmentId: string, data: Record<string, unknown>) =>
+    apiClient.patch(`/nurse/assignments/${assignmentId}`, data),
+  administerMedication: (data: Record<string, unknown>) =>
+    apiClient.post('/nurse/medications/administer', data),
+  addNote: (data: Record<string, unknown>) => apiClient.post('/nurse/notes', data),
+  requestDoctorReview: (data: Record<string, unknown>) => apiClient.post('/nurse/doctor-review', data),
+  escalateEmergency: (data: Record<string, unknown>) => apiClient.post('/nurse/emergencies', data),
 };
 
 // ─── AI ───────────────────────────────────────────────────────

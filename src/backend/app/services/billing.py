@@ -11,6 +11,7 @@ from app.config import settings
 from app.models.appointment import Appointment
 from app.models.bill import Bill
 from app.models.doctor import Doctor
+from app.models.enhancement import PaymentTransaction
 from app.models.patient import Patient
 from app.models.prescription import Prescription
 from app.models.user import User
@@ -125,16 +126,79 @@ async def get_patient_pending_bills(db: AsyncSession, patient_id: uuid.UUID) -> 
         .where(
             Bill.patient_id == patient_id,
             Bill.payment_status == "pending",
-            Bill.bill_type == "consultation",
         )
         .order_by(Bill.created_at.desc())
     )
-    bills = list(result.scalars().all())
-    return [
-        bill for bill in bills
-        if bill.appointment_id is not None
-        or any((item or {}).get("description") == "Consultation fee" for item in (bill.items or []))
-    ]
+    return list(result.scalars().all())
+
+
+async def record_payment_transaction(
+    db: AsyncSession,
+    bill: Bill,
+    payment_method: str,
+    gateway_reference: str | None = None,
+) -> PaymentTransaction:
+    transaction = PaymentTransaction(
+        bill_id=bill.id,
+        patient_id=bill.patient_id,
+        transaction_id=f"MF-{uuid.uuid4().hex[:12].upper()}",
+        payment_method=payment_method,
+        amount=float(bill.total_amount),
+        status="paid",
+        gateway_reference=gateway_reference,
+        receipt_payload={
+            "bill_id": str(bill.id),
+            "patient_id": str(bill.patient_id),
+            "bill_type": bill.bill_type,
+            "items": bill.items or [],
+            "subtotal": float(bill.subtotal),
+            "tax": float(bill.tax),
+            "total_amount": float(bill.total_amount),
+            "payment_method": payment_method,
+            "gateway_reference": gateway_reference,
+        },
+    )
+    db.add(transaction)
+    await db.flush()
+    return transaction
+
+
+async def mark_bill_paid_with_transaction(
+    db: AsyncSession,
+    bill_id: uuid.UUID,
+    payment_method: str,
+    actor_patient_id: uuid.UUID | None = None,
+    gateway_reference: str | None = None,
+) -> tuple[Bill, PaymentTransaction]:
+    result = await db.execute(select(Bill).where(Bill.id == bill_id))
+    bill = result.scalar_one_or_none()
+    if not bill:
+        raise ValueError("Bill not found")
+    if actor_patient_id and bill.patient_id != actor_patient_id:
+        raise ValueError("Access denied")
+    if bill.payment_status == "paid":
+        tx_result = await db.execute(
+            select(PaymentTransaction)
+            .where(PaymentTransaction.bill_id == bill.id)
+            .order_by(PaymentTransaction.created_at.desc())
+            .limit(1)
+        )
+        transaction = tx_result.scalar_one_or_none()
+        if transaction:
+            return bill, transaction
+
+    bill.payment_status = "paid"
+    bill.payment_method = payment_method
+    transaction = await record_payment_transaction(db, bill, payment_method, gateway_reference)
+    if bill.bill_type == "pharmacy":
+        from app.models.enhancement import PharmacyOrder
+
+        order_result = await db.execute(select(PharmacyOrder).where(PharmacyOrder.bill_id == bill.id))
+        order = order_result.scalar_one_or_none()
+        if order and order.status == "ready_for_pickup":
+            order.status = "paid"
+    await db.flush()
+    return bill, transaction
 
 
 async def create_razorpay_order(db: AsyncSession, bill_id: uuid.UUID, patient_id: uuid.UUID) -> dict:
@@ -190,6 +254,14 @@ async def verify_and_mark_paid(
     bill.payment_method = "razorpay"
     bill.razorpay_order_id = razorpay_order_id
     bill.razorpay_payment_id = razorpay_payment_id
+    await record_payment_transaction(db, bill, "razorpay", razorpay_payment_id)
+    if bill.bill_type == "pharmacy":
+        from app.models.enhancement import PharmacyOrder
+
+        order_result = await db.execute(select(PharmacyOrder).where(PharmacyOrder.bill_id == bill.id))
+        order = order_result.scalar_one_or_none()
+        if order and order.status == "ready_for_pickup":
+            order.status = "paid"
     await db.flush()
     return bill
 

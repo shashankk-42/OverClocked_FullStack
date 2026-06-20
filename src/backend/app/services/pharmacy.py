@@ -80,6 +80,7 @@ async def dispense_prescription(
     bill = Bill(
         patient_id=prescription.patient_id,
         prescription_id=prescription_id,
+        bill_type="pharmacy",
         items=bill_items,
         subtotal=total,
         tax=tax,

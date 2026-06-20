@@ -99,6 +99,15 @@ export default function ConsultationPage() {
     setNewMed({ name: '', dosage: '', frequency: 'once daily', duration: '5 days', instructions: '' });
   };
 
+  const addPreviousMedicine = (medicine: any) => {
+    if (!medicine?.name) return;
+    setMedicines((prev) => {
+      if (prev.some((item: any) => item.name?.toLowerCase() === medicine.name.toLowerCase())) return prev;
+      return [...prev, { ...medicine, quantity: medicine.quantity || 10 }];
+    });
+    toast.success(`${medicine.name} added to prescription`);
+  };
+
   const checkInteractions = async () => {
     if (medicines.length === 0) return;
     setDrugLoading(true);
@@ -127,7 +136,7 @@ export default function ConsultationPage() {
       if (res.data.pdf_url) {
         setSavedPdfUrl(`${getUploadsBaseUrl()}${res.data.pdf_url}`);
       }
-      toast.success('Prescription saved, PDF generated, appointment closed, payment link sent to patient');
+      toast.success('Prescription finalized and sent to patient for approval');
       setTimeout(() => router.push('/doctor/dashboard'), 1500);
     },
     onError: (err: any) => {
@@ -152,7 +161,7 @@ export default function ConsultationPage() {
     }
   };
 
-  const canSave = !!diagnosis.trim() && !savedPrescriptionId && !!patientId && !!appointmentId;
+  const canSave = !!diagnosis.trim() && medicines.length > 0 && !savedPrescriptionId && !!patientId && !!appointmentId;
   const summary = summaryData?.summary;
   const context = summaryData?.context;
 
@@ -340,6 +349,12 @@ export default function ConsultationPage() {
               </div>
             )}
 
+            {context?.allergies && context.allergies !== 'None reported' && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                Known allergies: {context.allergies}
+              </div>
+            )}
+
             <div>
               <label htmlFor="diagnosis-input" className="mb-1 block text-xs font-medium uppercase tracking-wide text-neutral-500">Diagnosis</label>
               <input
@@ -360,6 +375,26 @@ export default function ConsultationPage() {
               {rxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
               {rxLoading ? 'Suggesting medicines...' : 'Suggest Medicines with AI'}
             </button>
+
+            {historyData?.prescriptions?.some((rx: any) => rx.medicines?.length > 0) && (
+              <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">Previous medicines</p>
+                <div className="flex flex-wrap gap-2">
+                  {historyData.prescriptions
+                    .flatMap((rx: any) => rx.medicines || [])
+                    .slice(0, 8)
+                    .map((medicine: any, index: number) => (
+                      <button
+                        key={`${medicine.name}-${index}`}
+                        onClick={() => addPreviousMedicine(medicine)}
+                        className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:border-neutral-400"
+                      >
+                        {medicine.name} {medicine.dosage ? `(${medicine.dosage})` : ''}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm space-y-4">
@@ -425,26 +460,29 @@ export default function ConsultationPage() {
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm space-y-3">
             <h3 className="font-semibold text-emerald-900">Complete Consultation</h3>
             <p className="text-sm text-emerald-800">
-              Saves prescription to history, generates PDF from SOAP notes, marks appointment completed, and sends payment link to the patient.
+              Locks this prescription, saves the final version, marks the consultation completed, and sends it to the patient for pharmacy approval.
             </p>
 
             <button
-              id="save-prescription-btn"
+              id="finish-prescription-btn"
               onClick={() => savePrescriptionMutation.mutate()}
               disabled={!canSave || savePrescriptionMutation.isPending}
               className="w-full rounded-xl bg-emerald-600 py-3.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {savePrescriptionMutation.isPending ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Saving & closing visit...</>
+                <><Loader2 className="h-4 w-4 animate-spin" /> Finishing prescription...</>
               ) : savedPrescriptionId ? (
                 <><CheckCircle2 className="h-4 w-4" /> Visit Completed</>
               ) : (
-                <><LogOut className="h-4 w-4" /> Save Prescription & Close Appointment</>
+                <><LogOut className="h-4 w-4" /> Finish Prescription</>
               )}
             </button>
 
             {!diagnosis.trim() && (
               <p className="text-xs text-amber-700">Enter a diagnosis to enable save.</p>
+            )}
+            {diagnosis.trim() && medicines.length === 0 && (
+              <p className="text-xs text-amber-700">Add at least one medicine to finish the prescription.</p>
             )}
 
             {savedPrescriptionId && (

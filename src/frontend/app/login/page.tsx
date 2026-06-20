@@ -10,6 +10,7 @@ import { Activity, Eye, EyeOff, Loader2 } from 'lucide-react';
 const ROLE_ROUTES: Record<string, string> = {
   patient: '/patient/dashboard',
   doctor: '/doctor/dashboard',
+  nurse: '/nurse/dashboard',
   receptionist: '/reception/dashboard',
   pharmacist: '/pharmacy/dashboard',
   admin: '/admin/dashboard',
@@ -18,6 +19,7 @@ const ROLE_ROUTES: Record<string, string> = {
 const DEMO_PRESETS = [
   { label: 'Patient', id: '9876543210', pw: 'demo1234' },
   { label: 'Doctor', id: 'dr.sharma@mediflow.ai', pw: 'demo1234' },
+  { label: 'Nurse', id: 'nurse@mediflow.ai', pw: 'demo1234' },
   { label: 'Reception', id: 'reception@mediflow.ai', pw: 'demo1234' },
   { label: 'Pharmacy', id: 'pharmacist@mediflow.ai', pw: 'demo1234' },
 ];

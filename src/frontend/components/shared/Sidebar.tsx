@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Activity, LogOut, User } from 'lucide-react';
+import { Activity, LogOut, Menu, User, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -20,6 +21,7 @@ interface SidebarProps {
 const ROLE_LABELS: Record<string, string> = {
   patient: 'Patient',
   doctor: 'Doctor',
+  nurse: 'Nurse',
   receptionist: 'Reception',
   pharmacist: 'Pharmacy',
   admin: 'Admin',
@@ -28,11 +30,43 @@ const ROLE_LABELS: Record<string, string> = {
 export function Sidebar({ items, role }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const [open, setOpen] = useState(false);
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-neutral-200 flex flex-col z-30">
+    <>
+    <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-neutral-200 bg-white px-4 md:hidden">
+      <div className="flex items-center gap-2">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-900">
+          <Activity className="h-4 w-4 text-white" />
+        </div>
+        <div>
+          <p className="text-sm font-bold text-neutral-900">MediFlow AI</p>
+          <p className="text-xs font-medium text-neutral-500">{ROLE_LABELS[role] || role}</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        aria-label={open ? 'Close navigation' : 'Open navigation'}
+        onClick={() => setOpen((value) => !value)}
+        className="flex h-10 w-10 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-700"
+      >
+        {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      </button>
+    </div>
+    {open && (
+      <button
+        aria-label="Close navigation overlay"
+        className="fixed inset-0 z-30 bg-black/30 md:hidden"
+        onClick={() => setOpen(false)}
+        type="button"
+      />
+    )}
+    <aside className={cn(
+      'fixed left-0 top-0 z-40 flex h-full w-64 flex-col border-r border-neutral-200 bg-white transition-transform duration-200 md:translate-x-0',
+      open ? 'translate-x-0' : '-translate-x-full'
+    )}>
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-neutral-200">
+      <div className="flex items-center gap-2.5 border-b border-neutral-200 px-5 py-4">
         <div className="w-8 h-8 bg-neutral-900 rounded-lg flex items-center justify-center flex-shrink-0">
           <Activity className="w-4 h-4 text-white" />
         </div>
@@ -50,6 +84,7 @@ export function Sidebar({ items, role }: SidebarProps) {
             <Link
               key={href}
               href={href}
+              onClick={() => setOpen(false)}
               className={cn(
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
                 isActive
@@ -84,5 +119,6 @@ export function Sidebar({ items, role }: SidebarProps) {
         </button>
       </div>
     </aside>
+    </>
   );
 }

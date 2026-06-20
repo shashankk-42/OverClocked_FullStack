@@ -1,221 +1,203 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { pharmacyApi, aiApi } from '@/lib/api';
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { pharmacyApi } from '@/lib/api';
 import { format } from 'date-fns';
-import { Pill, CheckCircle2, Loader2, Brain, AlertTriangle, DollarSign, Package } from 'lucide-react';
+import { CheckCircle2, Clock, IndianRupee, Loader2, Package, Pill } from 'lucide-react';
 import { toast } from 'sonner';
+
+const STATUS_LABELS: Record<string, string> = {
+  patient_review: 'Patient Review',
+  pending: 'Pending',
+  preparing: 'Preparing',
+  ready_for_pickup: 'Ready',
+  paid: 'Paid',
+  fulfilled: 'Fulfilled',
+};
+
+const NEXT_ACTION: Record<string, { label: string; next: string }> = {
+  pending: { label: 'Start Preparing', next: 'preparing' },
+  preparing: { label: 'Mark Ready', next: 'ready_for_pickup' },
+  paid: { label: 'Mark Fulfilled', next: 'fulfilled' },
+};
+
+type PharmacyOrder = {
+  id: string;
+  patient_name: string;
+  patient_pid: string;
+  doctor_name: string;
+  diagnosis?: string;
+  medicines: any[];
+  status: string;
+  bill?: { total_amount: number; payment_status: string; items: any[] } | null;
+  created_at: string;
+};
 
 export default function PharmacyDashboard() {
   const queryClient = useQueryClient();
-  const [selectedRx, setSelectedRx] = useState<any>(null);
-  const [dispensingId, setDispensingId] = useState<string | null>(null);
-  const [currentBill, setCurrentBill] = useState<any>(null);
-  const [altMedicines, setAltMedicines] = useState<Record<string, any[]>>({});
-  const [altLoading, setAltLoading] = useState<Record<string, boolean>>({});
+  const [activeStatus, setActiveStatus] = useState('pending');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data: prescriptions = [], isLoading } = useQuery({
-    queryKey: ['pharmacy-pending'],
-    queryFn: () => pharmacyApi.pendingPrescriptions().then((r) => r.data),
-    refetchInterval: 20000,
+  const { data: orders = [], isLoading } = useQuery({
+    queryKey: ['pharmacy-orders'],
+    queryFn: () => pharmacyApi.orders().then((res) => res.data),
+    refetchInterval: 15000,
   });
 
-  const dispenseMutation = useMutation({
-    mutationFn: (prescriptionId: string) => pharmacyApi.dispense(prescriptionId),
-    onSuccess: (data) => {
-      setCurrentBill(data.data);
-      setDispensingId(null);
-      queryClient.invalidateQueries({ queryKey: ['pharmacy-pending'] });
-      toast.success('Prescription dispensed! Bill created.');
-    },
-    onError: (err: any) => {
-      setDispensingId(null);
-      toast.error(err.response?.data?.detail || 'Dispensing failed');
-    },
-  });
+  const counts = useMemo(() => {
+    const result: Record<string, number> = {};
+    orders.forEach((order: PharmacyOrder) => {
+      result[order.status] = (result[order.status] || 0) + 1;
+    });
+    return result;
+  }, [orders]);
 
-  const paymentMutation = useMutation({
-    mutationFn: (billId: string) => pharmacyApi.pay(billId, 'simulated'),
+  const filtered = orders.filter((order: PharmacyOrder) => order.status === activeStatus);
+  const selected = filtered.find((order: PharmacyOrder) => order.id === selectedId) || filtered[0] || null;
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => pharmacyApi.updateOrderStatus(id, status),
     onSuccess: () => {
-      toast.success('Payment received! Receipt generated.');
-      setCurrentBill(null);
-      setSelectedRx(null);
+      toast.success('Order updated');
+      queryClient.invalidateQueries({ queryKey: ['pharmacy-orders'] });
     },
-    onError: () => toast.error('Payment failed'),
+    onError: (err: any) => toast.error(err.response?.data?.detail || 'Could not update order'),
   });
-
-  const getAltMedicines = async (medicine: string, diagnosis: string) => {
-    setAltLoading((prev) => ({ ...prev, [medicine]: true }));
-    try {
-      const res = await aiApi.altMedicine(medicine, diagnosis || 'General');
-      setAltMedicines((prev) => ({ ...prev, [medicine]: res.data.alternatives }));
-    } catch {
-      toast.error('Failed to get alternatives');
-    } finally {
-      setAltLoading((prev) => ({ ...prev, [medicine]: false }));
-    }
-  };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-7xl space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Pharmacy Dashboard</h1>
-          <p className="text-neutral-500 text-sm">Pending prescriptions: {prescriptions.length}</p>
+          <p className="text-xs uppercase tracking-wide text-neutral-500">Pharmacy Workspace</p>
+          <h1 className="text-2xl font-bold text-neutral-900">Prescription Fulfillment Queue</h1>
+          <p className="mt-1 text-sm text-neutral-500">Patient-approved prescriptions move here automatically.</p>
         </div>
-        <div className="bg-white rounded-xl px-4 py-3 border border-amber-200 shadow-sm">
-          <p className="text-2xl font-bold text-amber-600">{prescriptions.length}</p>
-          <p className="text-xs text-neutral-500">Pending Rx</p>
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+          {['pending', 'preparing', 'ready_for_pickup', 'paid', 'fulfilled'].map((status) => (
+            <button
+              key={status}
+              onClick={() => {
+                setActiveStatus(status);
+                setSelectedId(null);
+              }}
+              className={`rounded-xl border px-3 py-3 text-center shadow-sm ${
+                activeStatus === status ? 'border-amber-300 bg-amber-50' : 'border-neutral-200 bg-white'
+              }`}
+            >
+              <p className="text-xl font-bold text-neutral-900">{counts[status] || 0}</p>
+              <p className="text-xs text-neutral-500">{STATUS_LABELS[status]}</p>
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pending Prescriptions List */}
-        <div className="space-y-4">
-          <h2 className="text-sm font-semibold text-neutral-500 uppercase tracking-wider flex items-center gap-2">
-            <Pill className="w-4 h-4 text-amber-600" /> Prescription Queue
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[420px_1fr]">
+        <section className="space-y-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            <Pill className="h-4 w-4 text-amber-600" /> {STATUS_LABELS[activeStatus]} Orders
           </h2>
-
           {isLoading ? (
-            <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-24 skeleton rounded-xl bg-neutral-100" />)}</div>
-          ) : prescriptions.length === 0 ? (
-            <div className="bg-white rounded-2xl p-8 text-center border border-neutral-200 shadow-sm">
-              <Pill className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
-              <p className="text-neutral-500 font-medium">No pending prescriptions</p>
-              <p className="text-neutral-400 text-sm mt-1">Queue is clear</p>
+            <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center">
+              <Loader2 className="mx-auto h-6 w-6 animate-spin text-neutral-400" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
+              <Package className="mx-auto mb-3 h-10 w-10 text-neutral-300" />
+              <p className="font-semibold text-neutral-900">No {STATUS_LABELS[activeStatus].toLowerCase()} orders</p>
+              <p className="mt-1 text-sm text-neutral-500">The queue is clear for this status.</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {prescriptions.map((rx: any) => (
-                <button key={rx.id}
-                  onClick={() => { setSelectedRx(rx); setCurrentBill(null); }}
-                  className={`w-full text-left bg-white rounded-xl p-4 border transition-all shadow-sm
-                    ${selectedRx?.id === rx.id ? 'border-amber-300 bg-amber-50' : 'border-neutral-200 hover:border-neutral-300'}`}>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-medium text-neutral-900">{rx.patient_name}</p>
-                      <p className="text-xs text-neutral-500 font-mono">{rx.patient_pid}</p>
-                      <p className="text-xs text-neutral-500 mt-1">{rx.diagnosis || 'No diagnosis'}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs px-2 py-0.5 rounded-full status-pending border">pending</span>
-                      <p className="text-xs text-neutral-500 mt-1">{rx.medicines?.length || 0} meds</p>
-                      <p className="text-xs text-neutral-500">{format(new Date(rx.created_at), 'h:mm a')}</p>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Selected Prescription Detail */}
-        <div>
-          {selectedRx && !currentBill && (
-            <div className="bg-white rounded-2xl p-6 border border-amber-200 shadow-sm space-y-4">
-              <div className="flex items-center gap-2">
-                <Pill className="w-5 h-5 text-amber-600" />
-                <h2 className="font-semibold text-neutral-900">Prescription Detail</h2>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><p className="text-neutral-500 text-xs">Patient</p><p className="text-neutral-900 font-medium">{selectedRx.patient_name}</p></div>
-                <div><p className="text-neutral-500 text-xs">Doctor</p><p className="text-neutral-900">{selectedRx.doctor_name}</p></div>
-                <div className="col-span-2"><p className="text-neutral-500 text-xs">Diagnosis</p><p className="text-neutral-900">{selectedRx.diagnosis}</p></div>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Medicines</p>
-                {selectedRx.medicines?.map((m: any, i: number) => (
-                  <div key={i} className="p-3 bg-neutral-50 rounded-xl border border-neutral-200">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-neutral-900">{m.name} <span className="text-neutral-500">{m.dosage}</span></p>
-                        <p className="text-xs text-neutral-500">{m.frequency} • {m.duration}</p>
-                        <p className="text-xs text-neutral-500">{m.instructions}</p>
-                      </div>
-                      <button
-                        onClick={() => getAltMedicines(m.name, selectedRx.diagnosis)}
-                        disabled={altLoading[m.name]}
-                        className="text-xs px-2 py-1 bg-blue-50 border border-blue-200 text-blue-600 rounded-lg flex items-center gap-1 hover:bg-blue-100 transition-all">
-                        {altLoading[m.name] ? <Loader2 className="w-3 h-3 animate-spin" /> : <Brain className="w-3 h-3" />}
-                        Alt
-                      </button>
-                    </div>
-
-                    {/* Alternative medicines */}
-                    {altMedicines[m.name] && altMedicines[m.name].length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-neutral-200">
-                        <p className="text-xs text-blue-600 mb-1.5">AI Alternatives:</p>
-                        {altMedicines[m.name].map((alt: any, j: number) => (
-                          <div key={j} className="flex items-start gap-2 text-xs p-2 bg-blue-50 rounded-lg mb-1">
-                            <Brain className="w-3 h-3 text-blue-600 flex-shrink-0 mt-0.5" />
-                            <div>
-                              <span className="text-blue-700 font-medium">{alt.name}</span>
-                              <span className="text-neutral-500"> — {alt.reason}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
+            filtered.map((order: PharmacyOrder) => (
               <button
-                id={`dispense-btn-${selectedRx.id}`}
-                onClick={() => { setDispensingId(selectedRx.id); dispenseMutation.mutate(selectedRx.id); }}
-                disabled={dispenseMutation.isPending}
-                className="w-full py-3 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-xl font-semibold flex items-center justify-center gap-2">
-                {dispenseMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                {dispenseMutation.isPending ? 'Dispensing...' : 'Dispense All Medicines'}
-              </button>
-            </div>
-          )}
-
-          {/* Bill */}
-          {currentBill && (
-            <div className="bg-white rounded-2xl p-6 border border-emerald-200 shadow-sm space-y-4">
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-emerald-600" />
-                <h2 className="font-semibold text-neutral-900">Bill Generated</h2>
-              </div>
-
-              <div className="space-y-2">
-                {currentBill.items?.map((item: any, i: number) => (
-                  <div key={i} className="flex justify-between text-sm">
-                    <span className="text-neutral-700">{item.medicine_name} × {item.quantity}</span>
-                    <span className="text-neutral-900">₹{item.total.toFixed(2)}</span>
+                key={order.id}
+                onClick={() => setSelectedId(order.id)}
+                className={`w-full rounded-xl border bg-white p-4 text-left shadow-sm transition ${
+                  selected?.id === order.id ? 'border-amber-300 ring-2 ring-amber-50' : 'border-neutral-200 hover:border-neutral-300'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-neutral-900">{order.patient_name}</p>
+                    <p className="font-mono text-xs text-neutral-500">{order.patient_pid}</p>
+                    <p className="mt-1 text-xs text-neutral-500">{order.doctor_name}</p>
                   </div>
-                ))}
-                <div className="border-t border-neutral-200 pt-2 mt-2">
-                  <div className="flex justify-between text-sm text-neutral-500">
-                    <span>Subtotal</span>
-                    <span>₹{(currentBill.total_amount - (currentBill.total_amount * 0.05 / 1.05)).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-neutral-500">
-                    <span>Tax (5%)</span>
-                    <span>₹{(currentBill.total_amount * 0.05 / 1.05).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-base font-bold text-neutral-900 mt-1">
-                    <span>Total</span>
-                    <span>₹{Number(currentBill.total_amount).toFixed(2)}</span>
-                  </div>
+                  <span className={`status-${order.status} rounded-full border px-2 py-0.5 text-xs capitalize`}>
+                    {STATUS_LABELS[order.status] || order.status}
+                  </span>
                 </div>
+                <div className="mt-3 flex items-center justify-between text-xs text-neutral-500">
+                  <span>{order.medicines?.length || 0} medicines</span>
+                  <span>{format(new Date(order.created_at), 'dd MMM, h:mm a')}</span>
+                </div>
+              </button>
+            ))
+          )}
+        </section>
+
+        <section>
+          {selected ? (
+            <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-neutral-900">{selected.patient_name}</h2>
+                  <p className="text-sm text-neutral-500">{selected.doctor_name}</p>
+                  <p className="mt-2 text-sm text-neutral-700">{selected.diagnosis || 'No diagnosis recorded'}</p>
+                </div>
+                {selected.bill && (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-800">
+                    <p className="flex items-center gap-1 text-xl font-bold">
+                      <IndianRupee className="h-4 w-4" /> {Number(selected.bill.total_amount).toFixed(2)}
+                    </p>
+                    <p className="text-xs capitalize">{selected.bill.payment_status}</p>
+                  </div>
+                )}
               </div>
 
-              <button
-                id={`pay-btn-${currentBill.bill_id}`}
-                onClick={() => paymentMutation.mutate(currentBill.bill_id)}
-                disabled={paymentMutation.isPending}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-semibold flex items-center justify-center gap-2">
-                {paymentMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                {paymentMutation.isPending ? 'Processing...' : 'Mark as Paid (₹' + Number(currentBill.total_amount).toFixed(2) + ')'}
-              </button>
+              <div className="mt-5 space-y-3">
+                {selected.medicines?.map((medicine: any, index: number) => (
+                  <div key={`${medicine.name}-${index}`} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                    <p className="font-semibold text-neutral-900">{medicine.name} <span className="font-normal text-neutral-500">{medicine.dosage}</span></p>
+                    <p className="text-sm text-neutral-500">{medicine.frequency} | {medicine.duration}</p>
+                    {medicine.instructions && <p className="mt-1 text-xs text-neutral-600">{medicine.instructions}</p>}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                {NEXT_ACTION[selected.status] ? (
+                  <button
+                    id={`pharmacy-action-${selected.id}`}
+                    onClick={() => updateStatusMutation.mutate({ id: selected.id, status: NEXT_ACTION[selected.status].next })}
+                    disabled={updateStatusMutation.isPending}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-amber-600 py-3 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    {updateStatusMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                    {NEXT_ACTION[selected.status].label}
+                  </button>
+                ) : selected.status === 'ready_for_pickup' ? (
+                  <div className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 py-3 text-sm font-semibold text-blue-700">
+                    <Clock className="h-4 w-4" /> Waiting for patient payment
+                  </div>
+                ) : selected.status === 'patient_review' ? (
+                  <div className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 py-3 text-sm font-semibold text-amber-700">
+                    <Clock className="h-4 w-4" /> Waiting for patient approval
+                  </div>
+                ) : (
+                  <div className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3 text-sm font-semibold text-emerald-700">
+                    <CheckCircle2 className="h-4 w-4" /> Complete
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-neutral-200 bg-white p-10 text-center shadow-sm">
+              <Pill className="mx-auto mb-3 h-10 w-10 text-neutral-300" />
+              <p className="font-semibold text-neutral-900">Select an order</p>
+              <p className="mt-1 text-sm text-neutral-500">Order details and actions appear here.</p>
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

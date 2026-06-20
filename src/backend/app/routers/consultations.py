@@ -8,7 +8,9 @@ from app.db.session import get_db
 from app.auth.guards import require_role
 from app.models.user import User
 from app.models.doctor import Doctor
+from app.models.enhancement import PharmacyOrder
 from app.models.patient import Patient
+from app.services.enhancements import notify, sync_medication_timeline_from_prescription
 from app.schemas.schemas import CreatePrescriptionRequest, PrescriptionResponse
 from app.services.consultation import (
     create_prescription, get_prescriptions_for_patient,
@@ -113,6 +115,14 @@ async def create_prescription_route(
     db: AsyncSession = Depends(get_db),
 ):
     try:
+        if not data.diagnosis.strip():
+            raise ValueError("Diagnosis is required before finishing a prescription")
+        if not data.medicines:
+            raise ValueError("At least one medicine is required before finishing a prescription")
+        for index, medicine in enumerate(data.medicines, start=1):
+            if not medicine.name.strip() or not medicine.dosage.strip() or not medicine.frequency.strip() or not medicine.duration.strip():
+                raise ValueError(f"Medicine #{index} is incomplete")
+
         medicines = [m.model_dump() for m in data.medicines]
         prescription = await create_prescription(
             db=db,
@@ -124,11 +134,37 @@ async def create_prescription_route(
             soap_notes=data.soap_notes,
             drug_interactions=data.drug_interactions,
         )
+        prescription.status = "sent_to_patient"
+
+        existing_order_result = await db.execute(
+            select(PharmacyOrder).where(PharmacyOrder.prescription_id == prescription.id)
+        )
+        order = existing_order_result.scalar_one_or_none()
+        if not order:
+            order = PharmacyOrder(
+                prescription_id=prescription.id,
+                patient_id=prescription.patient_id,
+                status="patient_review",
+            )
+            db.add(order)
+            await db.flush()
+
+        await sync_medication_timeline_from_prescription(db, prescription)
+        await notify(
+            db,
+            title="Prescription ready for review",
+            message="Your doctor finalized a prescription. Review and approve medicines to send it to pharmacy.",
+            notification_type="prescription",
+            patient_id=prescription.patient_id,
+            priority="high",
+            payload={"prescription_id": str(prescription.id), "order_id": str(order.id)},
+        )
         return {
             "id": str(prescription.id),
+            "pharmacy_order_id": str(order.id),
             "status": prescription.status,
             "pdf_url": f"/uploads/{prescription.pdf_path}" if prescription.pdf_path else None,
-            "message": "Prescription saved, PDF generated, and payment link sent to patient",
+            "message": "Prescription finalized and sent to patient for pharmacy approval",
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

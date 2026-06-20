@@ -39,7 +39,7 @@ async def get_my_profile(
 @router.get("/search")
 async def search(
     q: str,
-    current_user: User = Depends(require_role("doctor", "receptionist", "pharmacist", "admin")),
+    current_user: User = Depends(require_role("doctor", "nurse", "receptionist", "pharmacist", "admin")),
     db: AsyncSession = Depends(get_db),
 ):
     patients = await search_patients(db, q)

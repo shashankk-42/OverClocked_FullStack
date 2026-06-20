@@ -63,8 +63,8 @@ export default function ReceptionDashboard() {
     }
   };
 
-  const queue = todayAppts.filter((a: any) => ['checked_in', 'in_consultation'].includes(a.status));
-  const waiting = todayAppts.filter((a: any) => a.status === 'booked');
+  const queue = todayAppts.filter((a: any) => ['checked_in', 'waiting', 'in_consultation'].includes(a.status));
+  const waiting = todayAppts.filter((a: any) => a.status === 'waiting');
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -154,6 +154,9 @@ export default function ReceptionDashboard() {
                       Check In
                     </button>
                   )}
+                  {appt.status === 'waiting' && (
+                    <span className="text-xs font-medium text-emerald-700">Ready in queue</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -230,6 +233,20 @@ export default function ReceptionDashboard() {
                         disabled={checkInMutation.isPending}
                         className="text-xs px-2 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded hover:bg-emerald-100 transition-all">
                         Check In
+                      </button>
+                    )}
+                    {appt.status === 'booked' && (
+                      <button
+                        onClick={() => appointmentsApi.updatePresence(appt.id, 'late').then(() => queryClient.invalidateQueries({ queryKey: ['reception-today'] }))}
+                        className="ml-2 text-xs px-2 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded hover:bg-amber-100 transition-all">
+                        Late
+                      </button>
+                    )}
+                    {['booked', 'late'].includes(appt.status) && (
+                      <button
+                        onClick={() => appointmentsApi.updatePresence(appt.id, 'absent').then(() => queryClient.invalidateQueries({ queryKey: ['reception-today'] }))}
+                        className="ml-2 text-xs px-2 py-1 bg-red-50 border border-red-200 text-red-700 rounded hover:bg-red-100 transition-all">
+                        Absent
                       </button>
                     )}
                   </td>

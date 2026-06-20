@@ -11,6 +11,7 @@ from app.db.session import get_db
 from app.models.appointment import Appointment
 from app.models.bill import Bill
 from app.models.doctor import Doctor
+from app.models.enhancement import PaymentTransaction
 from app.models.patient import Patient
 from app.models.user import User
 from app.services.billing import (
@@ -18,6 +19,7 @@ from app.services.billing import (
     create_razorpay_order,
     get_bill_for_appointment,
     get_patient_pending_bills,
+    mark_bill_paid_with_transaction,
     send_payment_link_notification,
     verify_and_mark_paid,
 )
@@ -30,6 +32,11 @@ class VerifyPaymentRequest(BaseModel):
     razorpay_order_id: str
     razorpay_payment_id: str
     razorpay_signature: str
+
+
+class OfflinePaymentRequest(BaseModel):
+    payment_method: str = "cash"
+    gateway_reference: str | None = None
 
 
 @router.get("/config")
@@ -137,6 +144,63 @@ async def create_order(
         }
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/{bill_id}/pay")
+async def pay_bill(
+    bill_id: str,
+    data: OfflinePaymentRequest,
+    current_user: User = Depends(require_role("patient", "pharmacist", "receptionist", "admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    allowed_methods = {"cash", "upi", "card", "gateway", "simulated"}
+    if data.payment_method not in allowed_methods:
+        raise HTTPException(status_code=400, detail=f"Invalid method. Use one of: {', '.join(sorted(allowed_methods))}")
+
+    actor_patient_id = current_user.linked_id if current_user.role == "patient" else None
+    try:
+        bill, transaction = await mark_bill_paid_with_transaction(
+            db,
+            uuid.UUID(bill_id),
+            data.payment_method,
+            actor_patient_id=actor_patient_id,
+            gateway_reference=data.gateway_reference,
+        )
+        return {
+            "success": True,
+            "bill_id": str(bill.id),
+            "transaction_id": transaction.transaction_id,
+            "payment_status": bill.payment_status,
+            "payment_method": bill.payment_method,
+            "total_amount": float(bill.total_amount),
+            "receipt": transaction.receipt_payload,
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/receipts/{transaction_id}")
+async def receipt(
+    transaction_id: str,
+    current_user: User = Depends(require_role("patient", "pharmacist", "receptionist", "admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(PaymentTransaction).where(PaymentTransaction.transaction_id == transaction_id))
+    transaction = result.scalar_one_or_none()
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Receipt not found")
+    if current_user.role == "patient" and transaction.patient_id != current_user.linked_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    return {
+        "transaction_id": transaction.transaction_id,
+        "bill_id": str(transaction.bill_id),
+        "patient_id": str(transaction.patient_id),
+        "payment_method": transaction.payment_method,
+        "amount": float(transaction.amount),
+        "status": transaction.status,
+        "created_at": transaction.created_at.isoformat(),
+        "receipt": transaction.receipt_payload,
+    }
 
 
 @router.post("/verify")

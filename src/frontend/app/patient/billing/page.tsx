@@ -46,6 +46,7 @@ export default function PatientBillingPage() {
   const queryClient = useQueryClient();
   const highlightBillId = searchParams.get('bill');
   const [payingBillId, setPayingBillId] = useState<string | null>(null);
+  const [methodByBill, setMethodByBill] = useState<Record<string, string>>({});
 
   const { data: bills = [], isLoading } = useQuery({
     queryKey: ['patient-bills'],
@@ -130,18 +131,27 @@ export default function PatientBillingPage() {
     }
   };
 
+  const offlinePaymentMutation = useMutation({
+    mutationFn: ({ billId, method }: { billId: string; method: string }) => billingApi.payBill(billId, method),
+    onSuccess: (res) => {
+      toast.success(`Payment recorded. Receipt ${res.data.transaction_id}`);
+      queryClient.invalidateQueries({ queryKey: ['patient-bills'] });
+    },
+    onError: (err: any) => toast.error(err.response?.data?.detail || 'Payment failed'),
+  });
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <p className="text-xs uppercase tracking-wide text-neutral-500">Payments</p>
-        <h1 className="text-2xl font-bold text-neutral-900">Consultation Billing</h1>
-        <p className="mt-1 text-neutral-500">Pay pending consultation fees after your doctor completes the visit.</p>
+        <h1 className="text-2xl font-bold text-neutral-900">Billing & Payments</h1>
+        <p className="mt-1 text-neutral-500">Pay consultation and pharmacy invoices, then receive a stored receipt.</p>
       </div>
 
       {!config?.enabled && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
-          Razorpay test keys are not configured on the backend. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to enable live checkout.
+          Razorpay test keys are not configured. You can still complete local payments with UPI, card, cash, or simulated mode.
         </div>
       )}
 
@@ -172,7 +182,7 @@ export default function PatientBillingPage() {
                     <div className="flex items-center gap-2">
                       <CreditCard className="h-5 w-5 text-emerald-600" />
                       <p className="font-semibold text-neutral-900">
-                        {bill.items?.[0]?.description || 'Consultation fee'}
+                        {bill.items?.[0]?.description || (bill.bill_type === 'pharmacy' ? 'Pharmacy invoice' : 'Consultation fee')}
                       </p>
                     </div>
                     {bill.doctor_name && (
@@ -197,19 +207,42 @@ export default function PatientBillingPage() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => payBill(bill)}
-                  disabled={payingBillId === bill.id || !config?.enabled}
-                  className="mt-4 w-full rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {payingBillId === bill.id ? (
-                    <span className="inline-flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Opening Razorpay...
-                    </span>
-                  ) : (
-                    'Pay Now with Razorpay'
-                  )}
-                </button>
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
+                  <select
+                    value={methodByBill[bill.id] || 'upi'}
+                    onChange={(event) => setMethodByBill((prev) => ({ ...prev, [bill.id]: event.target.value }))}
+                    className="app-input"
+                  >
+                    <option value="upi">UPI</option>
+                    <option value="card">Card</option>
+                    <option value="cash">Cash</option>
+                    <option value="simulated">Simulated</option>
+                  </select>
+                  <button
+                    id={`pay-offline-${bill.id}`}
+                    onClick={() => offlinePaymentMutation.mutate({ billId: bill.id, method: methodByBill[bill.id] || 'upi' })}
+                    disabled={offlinePaymentMutation.isPending}
+                    className="rounded-xl bg-neutral-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
+                  >
+                    {offlinePaymentMutation.isPending ? 'Processing...' : 'Pay'}
+                  </button>
+                </div>
+
+                {config?.enabled && (
+                  <button
+                    onClick={() => payBill(bill)}
+                    disabled={payingBillId === bill.id}
+                    className="mt-3 w-full rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {payingBillId === bill.id ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Opening Razorpay...
+                      </span>
+                    ) : (
+                      'Pay Now with Razorpay'
+                    )}
+                  </button>
+                )}
               </div>
             );
           })}

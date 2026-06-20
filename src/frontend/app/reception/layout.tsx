@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/shared/Sidebar';
-import { AlertTriangle, Bed, ClipboardList, HeartPulse, LayoutDashboard, TimerReset, Users } from 'lucide-react';
+import { AlertTriangle, Bed, ClipboardList, HeartPulse, LayoutDashboard, Map, TimerReset, Users } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/reception/dashboard', label: 'Queue Board', icon: LayoutDashboard },
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: '/reception/appointments', label: 'Appointments', icon: ClipboardList },
   { href: '/reception/emergencies', label: 'Emergencies', icon: AlertTriangle },
   { href: '/reception/rooms', label: 'Rooms & Beds', icon: Bed },
+  { href: '/reception/navigation', label: 'Navigation', icon: Map },
   { href: '/reception/journeys', label: 'Patient Journey', icon: HeartPulse },
   { href: '/reception/waitlist', label: 'Earlier Slots', icon: TimerReset },
 ];
@@ -34,7 +35,7 @@ export default function ReceptionLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen bg-neutral-50">
       <Sidebar items={NAV_ITEMS} role="receptionist" />
-      <main className="ml-64 flex-1 p-8 animate-fadeIn">{children}</main>
+      <main className="flex-1 p-4 pt-20 animate-fadeIn md:ml-64 md:p-8">{children}</main>
     </div>
   );
 }

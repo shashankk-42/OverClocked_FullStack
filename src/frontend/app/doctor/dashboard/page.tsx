@@ -127,7 +127,7 @@ function AppointmentCard({
           </>
         )}
 
-        {appt.status === 'checked_in' && onStart && (
+        {['checked_in', 'waiting'].includes(appt.status) && onStart && (
           <button
             onClick={onStart}
             disabled={busy}
@@ -137,7 +137,7 @@ function AppointmentCard({
           </button>
         )}
 
-        {['checked_in', 'in_consultation'].includes(appt.status) && (
+        {['checked_in', 'waiting', 'in_consultation'].includes(appt.status) && (
           <Link
             href={`/doctor/consultation/${appt.id}?patientId=${appt.patient_id}&pid=${appt.patient_pid}`}
             className="rounded-lg bg-neutral-100 p-1.5 text-neutral-600 transition hover:bg-neutral-200"
@@ -174,7 +174,7 @@ export default function DoctorDashboard() {
     },
   });
 
-  const queue = todayAppts.filter((a: Appointment) => ['checked_in', 'in_consultation'].includes(a.status));
+  const queue = todayAppts.filter((a: Appointment) => ['checked_in', 'waiting', 'in_consultation'].includes(a.status));
   const pending = todayAppts
     .filter((a: Appointment) => a.status === 'booked')
     .sort((a: Appointment, b: Appointment) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());

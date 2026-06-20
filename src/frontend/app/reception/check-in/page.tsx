@@ -28,6 +28,15 @@ export default function ReceptionCheckInPage() {
     onError: (err: any) => toast.error(err.response?.data?.detail || 'Check-in failed'),
   });
 
+  const presenceMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => appointmentsApi.updatePresence(id, status),
+    onSuccess: () => {
+      toast.success('Presence updated');
+      queryClient.invalidateQueries({ queryKey: ['reception-today'] });
+    },
+    onError: (err: any) => toast.error(err.response?.data?.detail || 'Presence update failed'),
+  });
+
   const search = async () => {
     if (!query.trim()) return;
     setLoading(true);
@@ -83,9 +92,27 @@ export default function ReceptionCheckInPage() {
                     <span className={`mt-2 inline-flex rounded-full px-2 py-1 text-xs status-${appt.status}`}>{appt.status.replace('_', ' ')}</span>
                   </div>
                   {appt.status === 'booked' ? (
-                    <button id={`checkin-${appt.id}`} onClick={() => checkInMutation.mutate(appt.id)} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700">
-                      <CheckCircle className="h-4 w-4" /> Check In
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button id={`checkin-${appt.id}`} onClick={() => checkInMutation.mutate(appt.id)} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700">
+                        <CheckCircle className="h-4 w-4" /> Check In
+                      </button>
+                      <button onClick={() => presenceMutation.mutate({ id: appt.id, status: 'late' })} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100">
+                        Late
+                      </button>
+                      <button onClick={() => presenceMutation.mutate({ id: appt.id, status: 'absent' })} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100">
+                        Absent
+                      </button>
+                    </div>
+                  ) : null}
+                  {appt.status === 'late' ? (
+                    <div className="flex flex-wrap gap-2">
+                      <button id={`checkin-${appt.id}`} onClick={() => checkInMutation.mutate(appt.id)} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700">
+                        <CheckCircle className="h-4 w-4" /> Arrived
+                      </button>
+                      <button onClick={() => presenceMutation.mutate({ id: appt.id, status: 'absent' })} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100">
+                        Absent
+                      </button>
+                    </div>
                   ) : null}
                 </div>
               </div>

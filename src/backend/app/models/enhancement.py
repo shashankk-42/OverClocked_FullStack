@@ -511,3 +511,77 @@ class VisualTriageAnalysis(Base):
     urgency_level: Mapped[str] = mapped_column(String(40), default="routine", index=True)
     confidence_score: Mapped[float] = mapped_column(Numeric(5, 2), default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class HospitalLocation(Base):
+    __tablename__ = "hospital_locations"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(255), index=True)
+    location_type: Mapped[str] = mapped_column(String(80), index=True)
+    department: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    floor: Mapped[int] = mapped_column(Integer, index=True)
+    room_number: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    x: Mapped[int] = mapped_column(Integer, default=0)
+    y: Mapped[int] = mapped_column(Integer, default=0)
+    adjacent_codes: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    code: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    is_restricted: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class NurseAssignment(Base):
+    __tablename__ = "nurse_assignments"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    nurse_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
+    patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id"), index=True)
+    bed_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("beds.id"), nullable=True)
+    priority: Mapped[str] = mapped_column(String(40), default="medium", index=True)
+    status: Mapped[str] = mapped_column(String(40), default="monitoring", index=True)
+    instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class NurseNote(Base):
+    __tablename__ = "nurse_notes"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    nurse_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
+    patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id"), index=True)
+    note_type: Mapped[str] = mapped_column(String(80), default="general")
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class PaymentTransaction(Base):
+    __tablename__ = "payment_transactions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    bill_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("bills.id"), index=True)
+    patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id"), index=True)
+    transaction_id: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    payment_method: Mapped[str] = mapped_column(String(40), index=True)
+    amount: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
+    status: Mapped[str] = mapped_column(String(40), default="paid", index=True)
+    gateway_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    receipt_payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class PharmacyOrder(Base):
+    __tablename__ = "pharmacy_orders"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    prescription_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("prescriptions.id"), index=True)
+    patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id"), index=True)
+    status: Mapped[str] = mapped_column(String(40), default="patient_review", index=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    prepared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    fulfilled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    bill_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("bills.id"), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
